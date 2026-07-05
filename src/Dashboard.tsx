@@ -6,13 +6,14 @@ import { FileUpload } from "./FileUpload";
 import { CreateInvoiceModal } from "./CreateInvoiceModal";
 import { AuftragDetail } from "./AuftragDetail";
 import { CustomerDetail } from "./CustomerDetail";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 
 interface DashboardProps {
   auth: { userId: string; email: string; name: string; plan: string };
   onLogout: () => void;
 }
 
-type Page = "dashboard" | "invoices" | "incoming" | "customers" | "reports";
+type Page = "dashboard" | "invoices" | "incoming" | "customers" | "reports" | "analytics";
 
 export function Dashboard({ auth, onLogout }: DashboardProps) {
   const [page, setPage] = useState<Page>("dashboard");
@@ -30,6 +31,7 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
 
   const navItems = [
     { id: "dashboard" as Page, icon: "▣", label: "Dashboard" },
+    { id: "analytics" as Page, icon: "📊", label: "Analytics" },
     { id: "invoices" as Page, icon: "▣", label: "Aufträge" },
     { id: "incoming" as Page, icon: "↙", label: "Eingang" },
     { id: "customers" as Page, icon: "●", label: "Kunden" },
@@ -82,6 +84,7 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
       {/* Main */}
       <main className="main fade-in">
         {page === "dashboard" && <DashboardPage auth={auth} onUpgrade={() => setShowUpgrade(true)} />}
+        {page === "analytics" && <AnalyticsDashboard auth={auth} onUpgrade={() => setShowUpgrade(true)} />}
         {page === "invoices" && <InvoicesPage userId={auth.userId as any} />}
         {page === "incoming" && <IncomingPage userId={auth.userId as any} />}
         {page === "customers" && <CustomersPage userId={auth.userId as any} />}
