@@ -1,9 +1,16 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import App from "./App";
+
+const convex = new ConvexReactClient(
+  import.meta.env.VITE_CONVEX_URL || "https://quick-ox-60.eu-west-1.convex.cloud"
+);
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ConvexProvider client={convex}>
+      <App />
+    </ConvexProvider>
   </React.StrictMode>
 );

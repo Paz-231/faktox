@@ -1,20 +1,28 @@
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
 
 export default function App() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const joinWaitlist = useMutation(api.waitlist.join);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    // TODO: Connect to Convex waitlist mutation
-    console.log("Waitlist signup:", email);
-    setSubmitted(true);
+    setError("");
+    try {
+      await joinWaitlist({ email });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Etwas ist schiefgelaufen");
+    }
   };
 
   return (
     <div className="container">
-      {/* Hero */}
       <section className="hero">
         <h1>Faktur</h1>
         <p>
@@ -47,9 +55,11 @@ export default function App() {
             ✅ Du bist auf der Warteliste! Wir melden uns bald.
           </div>
         )}
+        {error && (
+          <div style={{ marginTop: "1rem", color: "#E8A48C" }}>{error}</div>
+        )}
       </section>
 
-      {/* Features */}
       <section className="features">
         <div className="feature">
           <h3>🎤 Voice & Foto-Eingabe</h3>
@@ -77,7 +87,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* DACH Moat */}
       <section className="moat" id="moat">
         <h2>Warum nicht einfach Excel?</h2>
         <div className="moat-grid">
@@ -100,7 +109,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section className="pricing" id="pricing">
         <h2>Preise</h2>
         <div className="plans">

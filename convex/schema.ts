@@ -192,4 +192,10 @@ export default defineSchema({
     details: v.string(),
     timestamp: v.number(),
   }).index("userId", ["userId"]),
+
+  // ─── Waitlist (Landing Page Email Capture) ─────────────────
+  waitlist: defineTable({
+    email: v.string(),
+    createdAt: v.number(),
+  }).index("email", ["email"]),
 });
