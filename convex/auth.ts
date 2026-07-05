@@ -215,3 +215,134 @@ export const updateProfile = mutation({
     return { success: true };
   },
 });
+
+// ─── Stripe Support Queries/Mutations ──────────────────────
+
+// Find user by email (for Stripe webhook)
+export const getUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const email = args.email.toLowerCase().trim();
+    return await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .first();
+  },
+});
+
+// Find user by Stripe customer ID (for webhook updates)
+export const getUserByStripeCustomer = query({
+  args: { customerId: v.string() },
+  handler: async (ctx, args) => {
+    const allUsers = await ctx.db.query("users").collect();
+    return allUsers.find((u) => u.stripeCustomerId === args.customerId) || null;
+  },
+});
+
+// Update subscription (called from webhook)
+export const updateSubscription = mutation({
+  args: {
+    userId: v.id("users"),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    plan: v.string(),
+    planStatus: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      stripeCustomerId: args.stripeCustomerId,
+      stripeSubscriptionId: args.stripeSubscriptionId,
+      plan: args.plan,
+      planStatus: args.planStatus,
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: args.userId,
+      action: "subscription_updated",
+      details: `${args.plan} (${args.planStatus})`,
+      timestamp: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Create Stripe Checkout Session (returns URL for redirect)
+export const createCheckoutSession = mutation({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    plan: v.string(), // "starter" | "pro"
+  },
+  handler: async (ctx, args) => {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return { error: "Stripe not configured" };
+    }
+
+    const priceId =
+      args.plan === "pro"
+        ? process.env.STRIPE_PRICE_PRO
+        : process.env.STRIPE_PRICE_STARTER;
+
+    if (!priceId) {
+      return { error: "Price not configured" };
+    }
+
+    // Build checkout URL — client-side redirect to Stripe Checkout
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" as any });
+
+    const session = await stripe.checkout.sessions.create({
+      customer_email: args.email,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "subscription",
+      success_url: `${baseUrl}?payment=success`,
+      cancel_url: `${baseUrl}?payment=canceled`,
+      metadata: {
+        userId: args.userId,
+        email: args.email,
+        plan: args.plan,
+      },
+    });
+
+    return { checkoutUrl: session.url };
+  },
+});
+
+// Manage subscription (billing portal)
+export const createBillingPortal = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || !user.stripeCustomerId) {
+      return { error: "No Stripe customer found" };
+    }
+
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return { error: "Stripe not configured" };
+    }
+
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" as any });
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${baseUrl}`,
+    });
+
+    return { portalUrl: session.url };
+  },
+});

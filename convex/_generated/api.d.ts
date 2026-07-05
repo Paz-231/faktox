@@ -13,6 +13,7 @@ import type * as customers from "../customers.js";
 import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as profile from "../profile.js";
+import type * as stripe from "../stripe.js";
 import type * as waitlist from "../waitlist.js";
 
 import type {
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   incoming: typeof incoming;
   invoices: typeof invoices;
   profile: typeof profile;
+  stripe: typeof stripe;
   waitlist: typeof waitlist;
 }>;
 

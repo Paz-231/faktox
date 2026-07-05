@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "./convex/_generated/api";
+import { UpgradeModal } from "./UpgradeModal";
 
 interface DashboardProps {
   auth: { userId: string; email: string; name: string; plan: string };
@@ -11,6 +12,7 @@ type Page = "dashboard" | "invoices" | "incoming" | "customers" | "reports";
 
 export function Dashboard({ auth, onLogout }: DashboardProps) {
   const [page, setPage] = useState<Page>("dashboard");
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(
     () => (localStorage.getItem("faktur_theme") as "dark" | "light") || "dark"
   );
@@ -58,6 +60,15 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
           </button>
         </div>
         <div style={{ padding: "0 1.5rem", marginTop: "0.5rem" }}>
+          {auth.plan === "free" && (
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => setShowUpgrade(true)}
+              style={{ width: "100%", justifyContent: "center", marginBottom: "0.5rem" }}
+            >
+              ↑ Upgrade
+            </button>
+          )}
           <button className="btn btn-sm btn-ghost" onClick={onLogout} style={{ width: "100%", justifyContent: "center" }}>
             Logout
           </button>
@@ -66,7 +77,7 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
 
       {/* Main */}
       <main className="main fade-in">
-        {page === "dashboard" && <DashboardPage auth={auth} />}
+        {page === "dashboard" && <DashboardPage auth={auth} onUpgrade={() => setShowUpgrade(true)} />}
         {page === "invoices" && <InvoicesPage userId={auth.userId as any} />}
         {page === "incoming" && <IncomingPage userId={auth.userId as any} />}
         {page === "customers" && <CustomersPage userId={auth.userId as any} />}
@@ -86,6 +97,9 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
           </a>
         ))}
       </nav>
+
+      {/* Upgrade Modal */}
+      {showUpgrade && <UpgradeModal auth={auth} onClose={() => setShowUpgrade(false)} />}
     </div>
   );
 }
@@ -93,7 +107,7 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
 // ═══════════════════════════════════════════════════════════
 // Dashboard Page
 // ═══════════════════════════════════════════════════════════
-function DashboardPage({ auth }: { auth: DashboardProps["auth"] }) {
+function DashboardPage({ auth, onUpgrade }: { auth: DashboardProps["auth"]; onUpgrade: () => void }) {
   return (
     <div className="slide-up">
       <div className="page-header">
@@ -103,6 +117,16 @@ function DashboardPage({ auth }: { auth: DashboardProps["auth"] }) {
           <button className="btn btn-primary">+ Neue Rechnung</button>
         </div>
       </div>
+
+      {auth.plan === "free" && (
+        <div className="card" style={{ marginBottom: "1.5rem", borderColor: "var(--accent)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <h4 style={{ color: "var(--accent)", marginBottom: "0.25rem" }}>Free Plan — 3 Rechnungen/Monat</h4>
+            <p style={{ fontSize: "0.8125rem" }}>Upgrade auf Starter (12€) oder Pro (29€) für unbegrenzte Rechnungen.</p>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={onUpgrade}>↑ Upgrade</button>
+        </div>
+      )}
 
       <div className="stat-row">
         <div className="stat">
