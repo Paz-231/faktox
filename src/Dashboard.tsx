@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api";
 import { UpgradeModal } from "./UpgradeModal";
 import { FileUpload } from "./FileUpload";
 import { CreateInvoiceModal } from "./CreateInvoiceModal";
+import { AuftragDetail } from "./AuftragDetail";
 
 interface DashboardProps {
   auth: { userId: string; email: string; name: string; plan: string };
@@ -28,7 +29,7 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
 
   const navItems = [
     { id: "dashboard" as Page, icon: "▣", label: "Dashboard" },
-    { id: "invoices" as Page, icon: "↗", label: "Ausgang" },
+    { id: "invoices" as Page, icon: "▣", label: "Aufträge" },
     { id: "incoming" as Page, icon: "↙", label: "Eingang" },
     { id: "customers" as Page, icon: "●", label: "Kunden" },
     { id: "reports" as Page, icon: "▤", label: "Berichte" },
@@ -117,7 +118,7 @@ function DashboardPage({ auth, onUpgrade }: { auth: DashboardProps["auth"]; onUp
         <h1 className="page-title">Willkommen, {auth.name}</h1>
         <div className="page-actions">
           <button className="btn">📥 Eingang</button>
-          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Neue Rechnung</button>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Neuer Auftrag</button>
         </div>
       </div>
 
@@ -156,9 +157,9 @@ function DashboardPage({ auth, onUpgrade }: { auth: DashboardProps["auth"]; onUp
 
       <div className="card-grid">
         <div className="card">
-          <h4>Ausgangsrechnungen</h4>
-          <p style={{ marginTop: "0.5rem" }}>Noch keine Rechnungen erstellt.</p>
-          <button className="btn btn-sm" style={{ marginTop: "1rem" }} onClick={() => setShowCreate(true)}>+ Erste Rechnung</button>
+          <h4>Aufträge</h4>
+          <p style={{ marginTop: "0.5rem" }}>Noch keine Aufträge erstellt.</p>
+          <button className="btn btn-sm" style={{ marginTop: "1rem" }} onClick={() => setShowCreate(true)}>+ Erster Auftrag</button>
         </div>
         <div className="card">
           <h4>Eingangsrechnungen</h4>
@@ -188,21 +189,20 @@ function DashboardPage({ auth, onUpgrade }: { auth: DashboardProps["auth"]; onUp
 }
 
 // ═══════════════════════════════════════════════════════════
-// Invoices Page (Ausgang) — Live Data + Create Modal
+// Aufträge Page — Source of Truth, mit Detail-Ansicht
 // ═══════════════════════════════════════════════════════════
 function InvoicesPage({ userId }: { userId: any }) {
   const [showCreate, setShowCreate] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const invoices = useQuery(api.invoices.list, { userId }) ?? [];
+  const auftrags = useQuery(api.auftrags.list, { userId }) ?? [];
 
   const statusBadge = (status: string) => {
     const map: Record<string, { text: string; cls: string }> = {
       draft: { text: "Entwurf", cls: "badge" },
-      sent: { text: "Gesendet", cls: "badge badge-accent" },
-      paid: { text: "Bezahlt", cls: "badge badge-success" },
-      storno: { text: "Storno", cls: "badge badge-danger" },
-      overdue: { text: "Überfällig", cls: "badge badge-warn" },
+      confirmed: { text: "Bestätigt", cls: "badge badge-success" },
+      discarded: { text: "Verworfen", cls: "badge badge-danger" },
     };
     const s = map[status] || { text: status, cls: "badge" };
     return <span className={s.cls}>{s.text}</span>;
@@ -213,10 +213,10 @@ function InvoicesPage({ userId }: { userId: any }) {
   return (
     <div className="slide-up" key={refreshKey}>
       <div className="page-header">
-        <h1 className="page-title">Ausgangsrechnungen</h1>
+        <h1 className="page-title">Aufträge</h1>
         <div className="page-actions">
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-            + Neue Rechnung
+            + Neuer Auftrag
           </button>
         </div>
       </div>
@@ -227,39 +227,37 @@ function InvoicesPage({ userId }: { userId: any }) {
             <tr>
               <th>Nummer</th>
               <th>Datum</th>
-              <th>Empfänger</th>
-              <th>Typ</th>
-              <th>Netto</th>
-              <th>USt</th>
+              <th>Kunde</th>
               <th>Brutto</th>
               <th>Status</th>
+              <th>Angebot</th>
+              <th>Rechnung</th>
             </tr>
           </thead>
           <tbody>
-            {invoices.length === 0 ? (
+            {auftrags.length === 0 ? (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={7}>
                   <div className="empty-state">
-                    <div className="icon">↗</div>
-                    <h3>Keine Rechnungen</h3>
-                    <p>Erstelle deine erste Rechnung.</p>
+                    <div className="icon">▣</div>
+                    <h3>Keine Aufträge</h3>
+                    <p>Erstelle deinen ersten Auftrag.</p>
                     <button className="btn btn-primary btn-sm" style={{ marginTop: "1rem" }} onClick={() => setShowCreate(true)}>
-                      + Neue Rechnung
+                      + Neuer Auftrag
                     </button>
                   </div>
                 </td>
               </tr>
             ) : (
-              invoices.map((inv: any) => (
-                <tr key={inv._id}>
-                  <td style={{ fontWeight: 500 }}>{inv.number}</td>
-                  <td>{inv.date}</td>
-                  <td>{inv.recipientName}</td>
-                  <td><span className="badge">{inv.type}</span></td>
-                  <td>{money(inv.netAmount)}</td>
-                  <td>{money(inv.vatAmount)}</td>
-                  <td style={{ fontWeight: 600 }}>{money(inv.grossAmount)}</td>
-                  <td>{statusBadge(inv.status)}</td>
+              auftrags.map((auftrag: any) => (
+                <tr key={auftrag._id} onClick={() => setDetailId(auftrag._id)}>
+                  <td style={{ fontWeight: 500 }}>{auftrag.number}</td>
+                  <td>{auftrag.date}</td>
+                  <td>{auftrag.recipientName}</td>
+                  <td style={{ fontWeight: 600 }}>{money(auftrag.grossAmount)}</td>
+                  <td>{statusBadge(auftrag.status)}</td>
+                  <td>{auftrag.angebotId ? "✓" : "—"}</td>
+                  <td>{(auftrag.rechnungIds?.length || 0) > 0 ? `${auftrag.rechnungIds.length}✓` : "—"}</td>
                 </tr>
               ))
             )}
@@ -271,7 +269,16 @@ function InvoicesPage({ userId }: { userId: any }) {
         <CreateInvoiceModal
           userId={userId}
           onClose={() => setShowCreate(false)}
-          onUploaded={() => setRefreshKey(k => k + 1)}
+          onCreated={() => setRefreshKey(k => k + 1)}
+        />
+      )}
+
+      {detailId && (
+        <AuftragDetail
+          auftragId={detailId}
+          userId={userId}
+          onClose={() => setDetailId(null)}
+          onRefresh={() => setRefreshKey(k => k + 1)}
         />
       )}
     </div>

@@ -43,7 +43,6 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
   const [createdStep, setCreatedStep] = useState<string | null>(null);
 
   const createAuftrag = useMutation(api.auftrags.create);
-  const createRechnung = useMutation(api.auftrags.createRechnungFromAuftrag);
 
   const addItem = () => {
     setItems([...items, { description: "", qty: 1, unit: "Stunden", unitPrice: 0 }]);
@@ -94,12 +93,12 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         total: item.qty * item.unitPrice,
       }));
 
-      // Step 1: Create Auftrag (auto-confirmed for Flow A)
+      // Step 1: Create Auftrag (draft status — no rechnung yet)
       const year = new Date().getFullYear();
       const auftragNumber = `AU-${year}-${String(Date.now() % 1000000).padStart(6, "0")}`;
       setCreatedStep("Auftrag wird erstellt...");
 
-      const auftragId = await createAuftrag({
+      await createAuftrag({
         userId: userId as any,
         number: auftragNumber,
         date,
@@ -118,9 +117,10 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         paymentTerms,
       });
 
-      // Step 2: Confirm Auftrag + Create Rechnung from Auftrag
-      setCreatedStep("Rechnung wird erstellt...");
-      await createRechnung({ auftragId: auftragId as any, type });
+      // Auftrag created as draft. User can:
+      // - Confirm it (from Auftrag detail) → if auto mode, rechnung is generated
+      // - Create Angebot from it (from Auftrag detail)
+      // - Create Rechnung manually (from Auftrag detail)
 
       onCreated?.();
       onClose();
@@ -137,14 +137,14 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-header">
-          <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Neue Rechnung</h2>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Neuer Auftrag</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-body">
           {/* Flow Info */}
           <div style={{ padding: "0.75rem", background: "var(--surface-2)", border: "1px solid var(--border)", marginBottom: "1rem", fontSize: "0.75rem", color: "var(--fg-3)" }}>
-            📋 Flow: Auftrag wird automatisch erstellt → bestätigt → Rechnung generiert
+            📋 Flow: Auftrag wird erstellt. Rechnung kann später aus dem Auftrag generiert werden.
           </div>
 
           {/* Type */}

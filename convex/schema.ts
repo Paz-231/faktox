@@ -274,6 +274,18 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("userId_year", ["userId", "year"]),
 
+  // ─── Settings (pro User) ───────────────────────────────────
+  settings: defineTable({
+    userId: v.id("users"),
+    // Rechnung-Generierung: "auto" (bei Auftragsbestätigung) | "manual" (User triggert)
+    rechnungMode: v.string(), // "auto" | "manual"
+    // Standard-Steuerstatus
+    defaultTaxMode: v.string(), // kleinunternehmer, ust_standard, etc.
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("userId", ["userId"]),
+
   // ─── Audit Log ─────────────────────────────────────────────
   auditLog: defineTable({
     userId: v.id("users"),

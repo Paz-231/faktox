@@ -159,6 +159,104 @@ export const discard = mutation({
   },
 });
 
+// Generate Angebot from Auftrag
+export const createAngebotFromAuftrag = mutation({
+  args: { auftragId: v.id("auftrags") },
+  handler: async (ctx, args) => {
+    const auftrag = await ctx.db.get(args.auftragId);
+    if (!auftrag) throw new Error("Auftrag not found");
+
+    // Generate angebot number (AN- prefix, shared sequence)
+    const year = new Date().getFullYear();
+    const existing = await ctx.db
+      .query("numberSequences")
+      .withIndex("userId_year", (q) => q.eq("userId", auftrag.userId).eq("year", year))
+      .first();
+
+    let angebotNumber: string;
+    if (existing) {
+      const nextNum = existing.nextNumber;
+      await ctx.db.patch(existing._id, { nextNumber: nextNum + 1 });
+      angebotNumber = `AN-${year}-${String(nextNum).padStart(6, "0")}`;
+    } else {
+      await ctx.db.insert("numberSequences", {
+        userId: auftrag.userId,
+        year,
+        nextNumber: 2,
+        createdAt: Date.now(),
+      });
+      angebotNumber = `AN-${year}-000001`;
+    }
+
+    const now = Date.now();
+    const angebotId = await ctx.db.insert("angebots", {
+      userId: auftrag.userId,
+      number: angebotNumber,
+      date: new Date().toLocaleDateString("de-AT"),
+      validUntil: undefined,
+      deliveryDate: auftrag.deliveryDate,
+      recipientName: auftrag.recipientName,
+      recipientStreet: auftrag.recipientStreet,
+      recipientCity: auftrag.recipientCity,
+      recipientUid: auftrag.recipientUid,
+      taxMode: auftrag.taxMode,
+      taxRate: auftrag.taxRate,
+      taxNote: auftrag.taxNote,
+      netAmount: auftrag.netAmount,
+      vatAmount: auftrag.vatAmount,
+      grossAmount: auftrag.grossAmount,
+      items: auftrag.items,
+      status: "draft",
+      auftragId: args.auftragId, // linked back to auftrag
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: auftrag.userId,
+      action: "angebot_from_auftrag",
+      details: `Angebot ${angebotNumber} from Auftrag ${auftrag.number}`,
+      timestamp: now,
+    });
+
+    return { angebotId, angebotNumber };
+  },
+});
+
+// Get full detail: auftrag + angebot + rechnungen + storno
+export const getDetail = query({
+  args: { auftragId: v.id("auftrags") },
+  handler: async (ctx, args) => {
+    const auftrag = await ctx.db.get(args.auftragId);
+    if (!auftrag) return null;
+
+    // Find linked angebot (by auftragId)
+    const angebot = await ctx.db
+      .query("angebots")
+      .withIndex("userId", (q) => q.eq("userId", auftrag.userId))
+      .filter((q) => q.eq(q.field("auftragId"), args.auftragId))
+      .first();
+
+    // Find linked rechnungen
+    const rechnungIds = auftrag.rechnungIds || [];
+    const rechnungen = [];
+    for (const rid of rechnungIds) {
+      const r = await ctx.db.get(rid);
+      if (r) rechnungen.push(r);
+    }
+
+    // Find storno rechnungen (rechnungen with stornoOf set)
+    const stornos = rechnungen.filter((r) => r.stornoOf || r.stornoNumber);
+
+    return {
+      auftrag,
+      angebot,
+      rechnungen,
+      stornos,
+    };
+  },
+});
+
 // Create rechnung from auftrag
 export const createRechnungFromAuftrag = mutation({
   args: {

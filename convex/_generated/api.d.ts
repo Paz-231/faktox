@@ -16,6 +16,7 @@ import type * as fileUpload from "../fileUpload.js";
 import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as profile from "../profile.js";
+import type * as settings from "../settings.js";
 import type * as stripe from "../stripe.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   incoming: typeof incoming;
   invoices: typeof invoices;
   profile: typeof profile;
+  settings: typeof settings;
   stripe: typeof stripe;
   waitlist: typeof waitlist;
 }>;
