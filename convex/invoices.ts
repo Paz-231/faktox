@@ -25,10 +25,11 @@ export const get = query({
   },
 });
 
-// Create new invoice
+// Create new invoice (from auftrag — auftragId required)
 export const create = mutation({
   args: {
     userId: v.id("users"),
+    auftragId: v.id("auftrags"),
     number: v.string(),
     type: v.string(),
     date: v.string(),

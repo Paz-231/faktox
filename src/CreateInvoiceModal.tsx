@@ -40,9 +40,10 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
   ]);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createdStep, setCreatedStep] = useState<string | null>(null);
 
-  const getNextNumber = useMutation(api.invoices.getNextNumber);
-  const createInvoice = useMutation(api.invoices.create);
+  const createAuftrag = useMutation(api.auftrags.create);
+  const createRechnung = useMutation(api.auftrags.createRechnungFromAuftrag);
 
   const addItem = () => {
     setItems([...items, { description: "", qty: 1, unit: "Stunden", unitPrice: 0 }]);
@@ -76,11 +77,7 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         throw new Error("Positionen unvollständig — Beschreibung, Menge und Preis erforderlich");
       }
 
-      // Get next invoice number
-      const year = new Date().getFullYear();
-      const number = await getNextNumber({ userId: userId as any, year });
-
-      // Tax note
+      // Tax notes
       const taxNotes: Record<string, string> = {
         kleinunternehmer: "Gemäß § 6 Abs. 1 Z 27 UStG von der Umsatzsteuer befreit.",
         reverse_charge: "Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge).",
@@ -97,15 +94,19 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         total: item.qty * item.unitPrice,
       }));
 
-      await createInvoice({
+      // Step 1: Create Auftrag (auto-confirmed for Flow A)
+      const year = new Date().getFullYear();
+      const auftragNumber = `AU-${year}-${String(Date.now() % 1000000).padStart(6, "0")}`;
+      setCreatedStep("Auftrag wird erstellt...");
+
+      const auftragId = await createAuftrag({
         userId: userId as any,
-        number,
-        type,
+        number: auftragNumber,
         date,
         deliveryDate: deliveryDate || undefined,
         recipientName,
         recipientStreet,
-        recipientCity: recipientCity,
+        recipientCity,
         recipientUid: recipientUid || undefined,
         taxMode,
         taxRate,
@@ -116,6 +117,10 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         items: invoiceItems,
         paymentTerms,
       });
+
+      // Step 2: Confirm Auftrag + Create Rechnung from Auftrag
+      setCreatedStep("Rechnung wird erstellt...");
+      await createRechnung({ auftragId: auftragId as any, type });
 
       onCreated?.();
       onClose();
@@ -137,6 +142,11 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         </div>
 
         <div className="modal-body">
+          {/* Flow Info */}
+          <div style={{ padding: "0.75rem", background: "var(--surface-2)", border: "1px solid var(--border)", marginBottom: "1rem", fontSize: "0.75rem", color: "var(--fg-3)" }}>
+            📋 Flow: Auftrag wird automatisch erstellt → bestätigt → Rechnung generiert
+          </div>
+
           {/* Type */}
           <div className="field-group">
             <label className="label">Typ</label>
@@ -260,7 +270,7 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
-            {creating ? "Erstelle..." : "Rechnung erstellen"}
+            {creating ? (createdStep || "Erstelle...") : "Auftrag + Rechnung erstellen"}
           </button>
         </div>
       </div>

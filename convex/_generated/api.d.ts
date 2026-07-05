@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as angebots from "../angebots.js";
+import type * as auftrags from "../auftrags.js";
 import type * as auth from "../auth.js";
 import type * as customers from "../customers.js";
 import type * as fileUpload from "../fileUpload.js";
@@ -24,6 +26,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  angebots: typeof angebots;
+  auftrags: typeof auftrags;
   auth: typeof auth;
   customers: typeof customers;
   fileUpload: typeof fileUpload;

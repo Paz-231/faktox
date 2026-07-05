@@ -82,9 +82,98 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("userId", ["userId"]),
 
+  // ─── Angebote (optional, vor Auftrag) ─────────────────────
+  angebots: defineTable({
+    userId: v.id("users"),
+    // Angebotsdaten (gleiche Struktur wie Rechnung)
+    number: v.string(), // AN-2026-000001
+    date: v.string(),
+    validUntil: v.optional(v.string()), // Gültig bis
+    deliveryDate: v.optional(v.string()),
+    // Empfänger
+    recipientName: v.string(),
+    recipientStreet: v.string(),
+    recipientCity: v.string(),
+    recipientUid: v.optional(v.string()),
+    // Steuer
+    taxMode: v.string(),
+    taxRate: v.number(),
+    taxNote: v.optional(v.string()),
+    // Beträge
+    netAmount: v.number(),
+    vatAmount: v.number(),
+    grossAmount: v.number(),
+    // Positionen
+    items: v.array(v.object({
+      pos: v.number(),
+      description: v.string(),
+      qty: v.number(),
+      unit: v.string(),
+      unitPrice: v.number(),
+      total: v.number(),
+    })),
+    // Status: draft → sent → confirmed → (generiert Auftrag) | discarded
+    status: v.string(),
+    sentDate: v.optional(v.string()),
+    confirmedDate: v.optional(v.string()),
+    // Verknüpfung
+    auftragId: v.optional(v.id("auftrags")), // Auftrag der aus diesem Angebot entstand
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("userId", ["userId"]).index("number", ["userId", "number"]),
+
+  // ─── Aufträge (immer, Pflicht vor Rechnung) ───────────────
+  auftrags: defineTable({
+    userId: v.id("users"),
+    number: v.string(), // AU-2026-000001
+    date: v.string(),
+    deliveryDate: v.optional(v.string()),
+    periodStart: v.optional(v.string()),
+    periodEnd: v.optional(v.string()),
+    // Empfänger
+    customerId: v.optional(v.id("customers")),
+    recipientName: v.string(),
+    recipientStreet: v.string(),
+    recipientCity: v.string(),
+    recipientUid: v.optional(v.string()),
+    // Steuer
+    taxMode: v.string(),
+    taxRate: v.number(),
+    taxNote: v.optional(v.string()),
+    // Beträge
+    netAmount: v.number(),
+    vatAmount: v.number(),
+    grossAmount: v.number(),
+    // Positionen
+    items: v.array(v.object({
+      pos: v.number(),
+      description: v.string(),
+      qty: v.number(),
+      unit: v.string(),
+      unitPrice: v.number(),
+      total: v.number(),
+    })),
+    // Status: draft → confirmed → (Rechnung möglich) | discarded
+    status: v.string(),
+    confirmedDate: v.optional(v.string()),
+    discardedDate: v.optional(v.string()),
+    // Verknüpfung
+    angebotId: v.optional(v.id("angebots")), // Angebot aus dem dieser Auftrag entstand
+    rechnungIds: v.optional(v.array(v.id("outgoingInvoices"))), // Rechnungen aus diesem Auftrag
+    // Sonstiges
+    paymentTerms: v.string(),
+    footer: v.optional(v.string()),
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("userId", ["userId"]).index("number", ["userId", "number"]),
+
   // ─── Ausgangsrechnungen (Rechnungen die der User ausstellt) ─
   outgoingInvoices: defineTable({
     userId: v.id("users"),
+    // Verknüpfung mit Auftrag (IMMER vorhanden)
+    auftragId: v.id("auftrags"),
     // Rechnungsdaten
     number: v.string(), // RE-2026-000001
     type: v.string(), // "Honorarnote" | "Rechnung"
