@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { UpgradeModal } from "./UpgradeModal";
 import { FileUpload } from "./FileUpload";
 import { CreateInvoiceModal } from "./CreateInvoiceModal";
 import { AuftragDetail } from "./AuftragDetail";
+import { CustomerDetail } from "./CustomerDetail";
 
 interface DashboardProps {
   auth: { userId: string; email: string; name: string; plan: string };
@@ -373,17 +374,74 @@ function IncomingPage({ userId }: { userId: any }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Customers Page
+// Customers Page — Liste + Detail + Bearbeiten
 // ═══════════════════════════════════════════════════════════
 function CustomersPage({ userId }: { userId: any }) {
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", street: "", city: "", uid: "", email: "" });
+
+  const customers = useQuery(api.customers.list, { userId }) ?? [];
+  const createCustomer = useMutation(api.customers.create);
+
+  const handleAdd = async () => {
+    if (!newCustomer.name) return;
+    await createCustomer({
+      userId: userId as any,
+      name: newCustomer.name,
+      street: newCustomer.street || undefined,
+      postalCityCountry: newCustomer.city || undefined,
+      uid: newCustomer.uid || undefined,
+      email: newCustomer.email || undefined,
+    });
+    setNewCustomer({ name: "", street: "", city: "", uid: "", email: "" });
+    setShowAdd(false);
+    setRefreshKey(k => k + 1);
+  };
+
   return (
-    <div className="slide-up">
+    <div className="slide-up" key={refreshKey}>
       <div className="page-header">
         <h1 className="page-title">Kunden</h1>
         <div className="page-actions">
-          <button className="btn btn-primary">+ Neuer Kunde</button>
+          <button className="btn btn-primary" onClick={() => setShowAdd(!showAdd)}>
+            {showAdd ? "✕ Schließen" : "+ Neuer Kunde"}
+          </button>
         </div>
       </div>
+
+      {/* Add Form */}
+      {showAdd && (
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <h4 style={{ marginBottom: "1rem" }}>Neuer Kunde</h4>
+          <div className="field-group">
+            <label className="label">Name / Firma</label>
+            <input className="input" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} placeholder="Kunde GmbH" />
+          </div>
+          <div className="field-group">
+            <label className="label">Straße</label>
+            <input className="input" value={newCustomer.street} onChange={(e) => setNewCustomer({ ...newCustomer, street: e.target.value })} placeholder="Musterstraße 1" />
+          </div>
+          <div className="field-row">
+            <div className="field-group">
+              <label className="label">PLZ + Ort + Land</label>
+              <input className="input" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} placeholder="1010 Wien, Österreich" />
+            </div>
+            <div className="field-group">
+              <label className="label">UID</label>
+              <input className="input" value={newCustomer.uid} onChange={(e) => setNewCustomer({ ...newCustomer, uid: e.target.value })} placeholder="ATU..." />
+            </div>
+          </div>
+          <div className="field-group">
+            <label className="label">Email</label>
+            <input className="input" value={newCustomer.email} onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })} placeholder="kunde@email.at" />
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={handleAdd} style={{ marginTop: "0.5rem" }}>Kunde anlegen</button>
+        </div>
+      )}
+
+      {/* Customer Table */}
       <div className="table-wrap">
         <table>
           <thead>
@@ -395,18 +453,41 @@ function CustomersPage({ userId }: { userId: any }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={4}>
-                <div className="empty-state">
-                  <div className="icon">●</div>
-                  <h3>Keine Kunden</h3>
-                  <p>Lege deinen ersten Kunden an.</p>
-                </div>
-              </td>
-            </tr>
+            {customers.length === 0 ? (
+              <tr>
+                <td colSpan={4}>
+                  <div className="empty-state">
+                    <div className="icon">●</div>
+                    <h3>Keine Kunden</h3>
+                    <p>Lege deinen ersten Kunden an.</p>
+                    <button className="btn btn-primary btn-sm" style={{ marginTop: "1rem" }} onClick={() => setShowAdd(true)}>
+                      + Neuer Kunde
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              customers.map((c: any) => (
+                <tr key={c._id} onClick={() => setDetailId(c._id)}>
+                  <td style={{ fontWeight: 500 }}>{c.name}</td>
+                  <td>{[c.street, c.postalCityCountry].filter(Boolean).join(", ") || "—"}</td>
+                  <td>{c.uid || "—"}</td>
+                  <td>{c.email || "—"}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
+
+      {detailId && (
+        <CustomerDetail
+          customerId={detailId}
+          userId={userId}
+          onClose={() => setDetailId(null)}
+          onRefresh={() => setRefreshKey(k => k + 1)}
+        />
+      )}
     </div>
   );
 }
