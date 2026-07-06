@@ -274,6 +274,17 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("userId_year", ["userId", "year"]),
 
+  // ─── Backups (automated + manual) ──────────────────────────
+  backups: defineTable({
+    userId: v.id("users"),
+    storageId: v.id("_storage"), // Convex file storage
+    fileName: v.string(),
+    sizeBytes: v.number(),
+    recordCount: v.number(),
+    type: v.string(), // "auto" | "manual"
+    createdAt: v.number(),
+  }).index("userId", ["userId"]).index("createdAt", ["createdAt"]),
+
   // ─── Sessions (Server-side Auth) ───────────────────────────
   sessions: defineTable({
     userId: v.id("users"),

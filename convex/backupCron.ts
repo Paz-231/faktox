@@ -1,0 +1,106 @@
+import { httpAction } from "./_generated/server";
+import { api } from "./_generated/api";
+
+// ═══════════════════════════════════════════════════════════
+// Manual Backup Trigger — HTTP Action
+// Kann von externem Cronjob (Hermes, GitHub Actions) aufgerufen werden
+// ═══════════════════════════════════════════════════════════
+
+export const triggerBackup = httpAction(async (ctx, request) => {
+  const url = new URL(request.url);
+  const adminKey = url.searchParams.get("key");
+
+  if (adminKey !== process.env.ADMIN_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Hole alle User
+  const users = await ctx.runQuery(api.backup.getAllUsers, {});
+
+  let backed = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    try {
+      // Sammle alle Daten für diesen User
+      const [
+        customers,
+        auftrags,
+        angebots,
+        invoices,
+        incomingInvoices,
+        dunningLetters,
+        numberSequences,
+        settings,
+        profile,
+        auditLog,
+      ] = await Promise.all([
+        ctx.runQuery(api.backup.getUsersCustomers, { userId: user._id }),
+        ctx.runQuery(api.backup.getUsersAuftrags, { userId: user._id }),
+        ctx.runQuery(api.backup.getUserAngebots, { userId: user._id }),
+        ctx.runQuery(api.backup.getUserInvoices, { userId: user._id }),
+        ctx.runQuery(api.backup.getUsersIncoming, { userId: user._id }),
+        ctx.runQuery(api.backup.getUserDunningLetters, { userId: user._id }),
+        ctx.runQuery(api.backup.getUserNumberSequences, { userId: user._id }),
+        ctx.runQuery(api.backup.getUsersSettings, { userId: user._id }),
+        ctx.runQuery(api.backup.getUsersProfile, { userId: user._id }),
+        ctx.runQuery(api.backup.getUserAuditLog, { userId: user._id }),
+      ]);
+
+      const backup = {
+        metadata: {
+          version: "1.0",
+          exportedAt: new Date().toISOString(),
+          email: user.email,
+          userId: user._id,
+          totalRecords:
+            (customers as any[]).length + (auftrags as any[]).length + (angebots as any[]).length +
+            (invoices as any[]).length + (incomingInvoices as any[]).length + (dunningLetters as any[]).length,
+        },
+        customers, auftrags, angebots, invoices, incomingInvoices,
+        dunningLetters, numberSequences, settings, profile, auditLog,
+      };
+
+      const json = JSON.stringify(backup, null, 2);
+      const fileName = `backup-${user.email}-${new Date().toISOString().split("T")[0]}.json`;
+
+      // Store as file in Convex Storage
+      const uploadUrl = await ctx.storage.generateUploadUrl();
+      const uploadResp = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: json,
+      });
+
+      const storageResult = await uploadResp.json();
+      const storageId = storageResult.storageId || storageResult._id;
+
+      await ctx.runMutation(api.backup.saveBackupRecord, {
+        userId: user._id,
+        storageId,
+        fileName,
+        sizeBytes: json.length,
+        recordCount: backup.metadata.totalRecords,
+        type: "auto",
+      });
+
+      backed++;
+    } catch (err) {
+      failed++;
+    }
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    backed,
+    failed,
+    totalUsers: users.length,
+    timestamp: new Date().toISOString(),
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});

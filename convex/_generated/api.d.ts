@@ -11,6 +11,8 @@
 import type * as angebots from "../angebots.js";
 import type * as auftrags from "../auftrags.js";
 import type * as auth from "../auth.js";
+import type * as backup from "../backup.js";
+import type * as backupCron from "../backupCron.js";
 import type * as customers from "../customers.js";
 import type * as fileUpload from "../fileUpload.js";
 import type * as incoming from "../incoming.js";
@@ -34,6 +36,8 @@ declare const fullApi: ApiFromModules<{
   angebots: typeof angebots;
   auftrags: typeof auftrags;
   auth: typeof auth;
+  backup: typeof backup;
+  backupCron: typeof backupCron;
   customers: typeof customers;
   fileUpload: typeof fileUpload;
   incoming: typeof incoming;

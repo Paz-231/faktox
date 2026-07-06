@@ -366,6 +366,32 @@ export function SettingsPage({ auth }: SettingsPageProps) {
         )}
       </div>
 
+      {/* Data Backup */}
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h4 style={{ marginBottom: "0.75rem" }}>Datensicherung</h4>
+        <p style={{ marginBottom: "1rem", fontSize: "0.8125rem" }}>
+          Deine Daten sind sicher. Tägliche automatische Backups um 05:00 MEZ. 90 Tage Aufbewahrung.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <a
+            href={`${import.meta.env.VITE_CONVEX_URL || "https://quick-ox-60.eu-west-1.convex.cloud"}/http/exportAllData?token=${localStorage.getItem("faktox_session")}`}
+            className="btn btn-primary btn-sm"
+            style={{ textDecoration: "none" }}
+          >
+            Vollständigen Export herunterladen (JSON)
+          </a>
+        </div>
+        <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "var(--surface-2)", border: "1px solid var(--border)", fontSize: "0.75rem", color: "var(--fg-3)" }}>
+          <strong>3-fach Schutz:</strong>
+          <br />
+          1. Convex Cloud (primäre Datenbank, täglich gesichert durch Convex)
+          <br />
+          2. Automatisches JSON-Backup in Convex Storage (täglich 05:00 MEZ, 90 Tage)
+          <br />
+          3. Manueller Export (diese Schaltfläche) — vollständige JSON-Datei mit allen Daten
+        </div>
+      </div>
+
       {/* Subscription */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h4 style={{ marginBottom: "0.75rem" }}>Abonnement</h4>
