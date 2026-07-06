@@ -457,6 +457,10 @@ export default function App() {
                 <span className="skill-check">—</span>
                 <span>Einzelplatz-Lizenz, sofort downloadbar</span>
               </div>
+              <div className="skill-feature">
+                <span className="skill-check">—</span>
+                <span>Fortlaufende Updates inklusive — immer die aktuellste Version</span>
+              </div>
             </div>
 
             <div className="skill-cta">
