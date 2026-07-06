@@ -205,7 +205,11 @@ export default defineSchema({
       total: v.number(),
     })),
     // Status
-    status: v.string(), // draft, sent, paid, storno, overdue
+    // Status: final (immutable), paid, storno, overdue
+    // Rechnung wird sofort als "final" erstellt — nicht veränderbar.
+    // Änderungen nur via Storno (Gutschrift) möglich.
+    status: v.string(),
+    lockedAt: v.optional(v.number()), // Timestamp wann Rechnung final wurde
     paidDate: v.optional(v.string()),
     // Storno
     stornoOf: v.optional(v.string()), // Original-Rechnungsnummer

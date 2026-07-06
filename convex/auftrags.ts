@@ -321,7 +321,10 @@ export const createRechnungFromAuftrag = mutation({
       vatAmount: auftrag.vatAmount,
       grossAmount: auftrag.grossAmount,
       items: auftrag.items,
-      status: "draft",
+      // IMUTABLE: Rechnung ist sofort final beim Generieren.
+      // Keine Bearbeitung möglich — nur Storno oder markPaid.
+      status: "final",
+      lockedAt: now,
       paymentTerms: auftrag.paymentTerms,
       footer: auftrag.footer,
       createdAt: now,

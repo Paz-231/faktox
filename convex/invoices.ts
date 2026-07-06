@@ -62,7 +62,8 @@ export const create = mutation({
     const now = Date.now();
     const invoiceId = await ctx.db.insert("outgoingInvoices", {
       ...args,
-      status: "draft",
+      status: "final",
+      lockedAt: now,
       createdAt: now,
       updatedAt: now,
     });
@@ -79,7 +80,7 @@ export const create = mutation({
   },
 });
 
-// Mark invoice as paid
+// Mark invoice as paid — only allowed when status is "final"
 export const markPaid = mutation({
   args: {
     invoiceId: v.id("outgoingInvoices"),
@@ -87,7 +88,12 @@ export const markPaid = mutation({
   },
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) throw new Error("Invoice not found");
+    if (!invoice) throw new Error("Rechnung nicht gefunden");
+
+    // Guard: only final invoices can be marked as paid
+    if (invoice.status !== "final") {
+      throw new Error(`Rechnung kann nicht als bezahlt markiert werden (Status: ${invoice.status})`);
+    }
 
     await ctx.db.patch(args.invoiceId, {
       status: "paid",
@@ -104,34 +110,62 @@ export const markPaid = mutation({
   },
 });
 
-// Storno an invoice
+// Storno an invoice — only allowed when status is "final" or "paid"
 export const storno = mutation({
   args: {
     invoiceId: v.id("outgoingInvoices"),
-    stornoNumber: v.string(),
   },
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.invoiceId);
-    if (!invoice) throw new Error("Invoice not found");
-    if (invoice.status === "storno") throw new Error("Already storno");
-    if (invoice.stornoOf) throw new Error("Cannot storno a storno invoice");
+    if (!invoice) throw new Error("Rechnung nicht gefunden");
+
+    // Guard: only final or paid invoices can be storniert
+    if (invoice.status !== "final" && invoice.status !== "paid") {
+      throw new Error(`Rechnung kann nicht storniert werden (Status: ${invoice.status})`);
+    }
+    if (invoice.stornoOf) throw new Error("Storno-Rechnung kann nicht storniert werden");
+    if (invoice.status === "storno") throw new Error("Bereits storniert");
+
+    // Generate storno number (ST- prefix, same sequence as invoices)
+    const year = new Date().getFullYear();
+    const existing = await ctx.db
+      .query("numberSequences")
+      .withIndex("userId_year", (q) => q.eq("userId", invoice.userId).eq("year", year))
+      .first();
+
+    let stornoNumber: string;
+    if (existing) {
+      const nextNum = existing.nextNumber;
+      await ctx.db.patch(existing._id, { nextNumber: nextNum + 1 });
+      stornoNumber = `ST-${year}-${String(nextNum).padStart(6, "0")}`;
+    } else {
+      await ctx.db.insert("numberSequences", {
+        userId: invoice.userId,
+        year,
+        nextNumber: 2,
+        createdAt: Date.now(),
+      });
+      stornoNumber = `ST-${year}-000001`;
+    }
 
     // Mark original as storno
     await ctx.db.patch(args.invoiceId, {
       status: "storno",
-      stornoNumber: args.stornoNumber,
+      stornoNumber,
       updatedAt: Date.now(),
     });
 
-    // Create storno invoice
+    // Create storno invoice (also immediately final/immutable)
     const now = Date.now();
     await ctx.db.insert("outgoingInvoices", {
       ...invoice,
-      number: args.stornoNumber,
+      number: stornoNumber,
       type: "Storno",
-      status: "draft",
+      status: "final",
+      lockedAt: now,
       stornoOf: invoice.number,
       stornoNumber: undefined,
+      paidDate: undefined,
       createdAt: now,
       updatedAt: now,
     });
@@ -140,7 +174,7 @@ export const storno = mutation({
     await ctx.db.insert("auditLog", {
       userId: invoice.userId,
       action: "invoice_storno",
-      details: `${invoice.number} → ${args.stornoNumber}`,
+      details: `${invoice.number} → ${stornoNumber}`,
       timestamp: now,
     });
   },

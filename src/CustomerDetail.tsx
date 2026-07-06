@@ -64,6 +64,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
   const statusBadge = (status: string) => {
     const map: Record<string, { text: string; cls: string }> = {
       draft: { text: "Entwurf", cls: "badge" },
+      final: { text: "Final", cls: "badge badge-success" },
       sent: { text: "Gesendet", cls: "badge badge-accent" },
       confirmed: { text: "Bestätigt", cls: "badge badge-success" },
       paid: { text: "Bezahlt", cls: "badge badge-success" },

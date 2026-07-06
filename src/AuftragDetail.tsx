@@ -27,6 +27,7 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
   const discardAuftrag = useMutation(api.auftrags.discard);
   const angebotMarkSent = useMutation(api.angebots.markSent);
   const angebotConfirm = useMutation(api.angebots.confirm);
+  const stornoRechnung = useMutation(api.invoices.storno);
 
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -99,6 +100,19 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
     }
   };
 
+  const handleStorno = async (rechnungId: string, originalNumber: string) => {
+    if (!confirm(`Rechnung ${originalNumber} stornieren? Eine Stornorechnung wird erstellt.`)) return;
+    setLoading(`storno-${rechnungId}`);
+    try {
+      await stornoRechnung({ invoiceId: rechnungId as any });
+      onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Storno fehlgeschlagen");
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const handleAngebotSend = async () => {
     if (!angebot) return;
     setLoading("angebot-send");
@@ -113,6 +127,7 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
   const statusBadge = (status: string) => {
     const map: Record<string, { text: string; cls: string }> = {
       draft: { text: "Entwurf", cls: "badge" },
+      final: { text: "Final", cls: "badge badge-success" },
       sent: { text: "Gesendet", cls: "badge badge-accent" },
       confirmed: { text: "Bestätigt", cls: "badge badge-success" },
       paid: { text: "Bezahlt", cls: "badge badge-success" },
@@ -284,6 +299,17 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
                     {r.type} · {r.date}
                     {r.paidDate && ` · Bezahlt: ${r.paidDate}`}
                   </div>
+                  {/* Storno Button — nur für final/paid Rechnungen */}
+                  {(r.status === "final" || r.status === "paid") && !r.stornoOf && (
+                    <button
+                      className="btn btn-sm"
+                      style={{ marginTop: "0.5rem", color: "var(--danger)" }}
+                      onClick={() => handleStorno(r._id, r.number)}
+                      disabled={loading === `storno-${r._id}`}
+                    >
+                      {loading === `storno-${r._id}` ? "Storniere..." : "Storno erstellen"}
+                    </button>
+                  )}
                 </div>
               ))}
               {auftrag.status === "confirmed" && (
