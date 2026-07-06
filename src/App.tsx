@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useMutation } from "convex/react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { SkillDownloadPage } from "./SkillDownloadPage";
+import { Dashboard } from "./Dashboard";
+import { useAuth } from "./useAuth";
+import { api } from "../convex/_generated/api";
 
 export default function App() {
   const [email, setEmail] = useState("");
@@ -9,6 +13,7 @@ export default function App() {
   const [skillEmail, setSkillEmail] = useState("");
   const [skillBuying, setSkillBuying] = useState(false);
   const [downloadToken, setDownloadToken] = useState<string | null>(null);
+  const { auth, logout, loading: authLoading } = useAuth();
 
   // Check URL hash for download token (from email link)
   useEffect(() => {
@@ -62,6 +67,22 @@ export default function App() {
 
   return (
     <div className="landing">
+      {/* If authenticated (server-validated), show Dashboard */}
+      {auth.userId && !downloadToken && (
+        <Dashboard
+          auth={{
+            userId: auth.userId,
+            email: auth.email || "",
+            name: auth.name || "",
+            plan: auth.plan || "free",
+          }}
+          onLogout={logout}
+        />
+      )}
+
+      {/* Otherwise show landing page */}
+      {!auth.userId && (
+        <>
       {/* Liquid animated background */}
       <motion.div
         className="liquid-bg"
@@ -502,11 +523,13 @@ export default function App() {
       </div>
 
       {/* Login redirect */}
-      {showLogin && (
+      {showLogin && !auth.userId && (
         <LoginRedirect />
       )}
+        </>
+      )}
 
-      {/* Download page for skill buyers */}
+      {/* Download page for skill buyers (works on both landing + dashboard) */}
       {downloadToken && (
         <SkillDownloadPage token={downloadToken} />
       )}
@@ -515,10 +538,42 @@ export default function App() {
 }
 
 function LoginRedirect() {
-  // Redirect to the auth flow — in the full app this would show the login page
-  // For the landing page deploy, we just show a message
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [verifyToken, setVerifyToken] = useState("");
+  const [error, setError] = useState("");
+  const requestMagicLink = useMutation(api.auth.requestMagicLink);
+  const verifyMagicLink = useMutation(api.auth.completeLogin);
+
+  const handleRequest = async () => {
+    if (!email) return;
+    setError("");
+    try {
+      const result = await requestMagicLink({ email });
+      if (result.dev) {
+        // Dev mode — show link directly
+        setVerifyToken(result.token);
+      }
+      setSent(true);
+    } catch (err: any) {
+      setError(err.message || "Fehler beim Senden");
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!verifyToken) return;
+    setError("");
+    try {
+      const result = await verifyMagicLink({ token: verifyToken });
+      if (result.sessionToken) {
+        localStorage.setItem("faktox_session", result.sessionToken);
+        localStorage.setItem("faktox_auth", JSON.stringify(result));
+        window.location.reload(); // Reload to trigger useAuth
+      }
+    } catch (err: any) {
+      setError(err.message || "Token ungültig");
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={() => window.location.reload()}>
@@ -528,8 +583,27 @@ function LoginRedirect() {
           <button className="btn btn-ghost btn-icon" onClick={() => window.location.reload()}>×</button>
         </div>
         <div className="modal-body">
-          {sent ? (
+          {error && (
+            <div style={{ marginBottom: "0.75rem", padding: "0.75rem", border: "1px solid var(--danger)", color: "var(--danger)", fontSize: "0.8125rem" }}>
+              {error}
+            </div>
+          )}
+          {sent && !verifyToken ? (
             <p style={{ textAlign: "center", color: "var(--success)" }}>Magic-Link gesendet an {email}</p>
+          ) : sent && verifyToken ? (
+            <>
+              <p style={{ marginBottom: "0.75rem", fontSize: "0.8125rem", color: "var(--fg-3)" }}>Dev-Modus: Token eingeben zum Einloggen</p>
+              <input
+                className="input"
+                value={verifyToken}
+                onChange={(e) => setVerifyToken(e.target.value)}
+                placeholder="magic-link-token"
+                style={{ marginBottom: "0.75rem" }}
+              />
+              <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={handleVerify}>
+                Einloggen
+              </button>
+            </>
           ) : (
             <>
               <p style={{ marginBottom: "1rem", fontSize: "0.8125rem", color: "var(--fg-3)" }}>Einloggen mit Magic-Link</p>
@@ -540,8 +614,9 @@ function LoginRedirect() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ marginBottom: "0.75rem" }}
+                onKeyDown={(e) => e.key === "Enter" && handleRequest()}
               />
-              <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => email && setSent(true)}>
+              <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={handleRequest}>
                 Magic-Link anfordern
               </button>
             </>

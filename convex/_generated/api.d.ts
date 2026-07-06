@@ -16,6 +16,7 @@ import type * as fileUpload from "../fileUpload.js";
 import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as profile from "../profile.js";
+import type * as sessions from "../sessions.js";
 import type * as settings from "../settings.js";
 import type * as skillDownload from "../skillDownload.js";
 import type * as skillDownloadDB from "../skillDownloadDB.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   incoming: typeof incoming;
   invoices: typeof invoices;
   profile: typeof profile;
+  sessions: typeof sessions;
   settings: typeof settings;
   skillDownload: typeof skillDownload;
   skillDownloadDB: typeof skillDownloadDB;

@@ -274,6 +274,14 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("userId_year", ["userId", "year"]),
 
+  // ─── Sessions (Server-side Auth) ───────────────────────────
+  sessions: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("token", ["token"]).index("userId", ["userId"]),
+
   // ─── Skill Downloads (99€ einmalig) ────────────────────────
   skillDownloads: defineTable({
     email: v.string(),

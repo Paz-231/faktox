@@ -109,14 +109,28 @@ export const completeLogin = mutation({
       throw new Error("Token ungültig oder abgelaufen");
     }
 
-    // Generate session token
-    const sessionToken = generateToken();
-
     // Clear magic link token, update last login
     await ctx.db.patch(user._id, {
       magicLinkToken: undefined,
       magicLinkExpiry: undefined,
       lastLoginAt: Date.now(),
+    });
+
+    // Create server-side session
+    const sessionToken = generateToken();
+    const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+    await ctx.db.insert("sessions", {
+      userId: user._id,
+      token: sessionToken,
+      expiresAt,
+      createdAt: Date.now(),
+    });
+
+    await ctx.db.insert("auditLog", {
+      userId: user._id,
+      action: "session_created",
+      details: "Login via magic link",
+      timestamp: Date.now(),
     });
 
     return {
@@ -126,6 +140,44 @@ export const completeLogin = mutation({
       name: user.name,
       plan: user.plan,
     };
+  },
+});
+
+// Validate session token (server-side auth check)
+export const validateSession = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!session) return null;
+    if (Date.now() > session.expiresAt) return null;
+
+    const user = await ctx.db.get(session.userId);
+    if (!user) return null;
+
+    return {
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+    };
+  },
+});
+
+// Destroy session (logout)
+export const destroySession = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("token", (q) => q.eq("token", args.token))
+      .first();
+    if (session) {
+      await ctx.db.delete(session._id);
+    }
   },
 });
 

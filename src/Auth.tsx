@@ -88,6 +88,7 @@ export function VerifyPage({ token, onSuccess }: { token: string; onSuccess: () 
     (async () => {
       try {
         const result = await verifyMagicLink({ token });
+        localStorage.setItem("faktox_session", result.sessionToken);
         localStorage.setItem("faktox_auth", JSON.stringify(result));
         onSuccess();
       } catch (err: any) {
