@@ -224,7 +224,7 @@ function DashboardPage({
             <h4 style={{ color: "var(--accent)", marginBottom: "0.25rem" }}>
               Free Plan — noch {freeInvoicesLeft} von 3 Rechnungen diesen Monat
             </h4>
-            <p style={{ fontSize: "0.8125rem" }}>Upgrade auf Starter (14,90€) oder Pro (29,90€) für unbegrenzte Rechnungen + AI Foto-Scan.</p>
+            <p style={{ fontSize: "0.8125rem" }}>Upgrade auf Starter (29€) oder Pro (49€) für unbegrenzte Rechnungen + AI Foto-Scan.</p>
           </div>
           <button className="btn btn-primary btn-sm" onClick={onUpgrade}>Upgrade</button>
         </div>

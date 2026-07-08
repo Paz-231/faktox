@@ -331,7 +331,7 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
             <h4 style={{ color: "var(--accent)", marginBottom: "0.25rem" }}>Mehr Analytics mit Pro</h4>
             <p style={{ fontSize: "0.8125rem" }}>Jahresbericht, EÜR, USt-Voranmeldung, DATEV-Export, Email-Abholung.</p>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={onUpgrade}>» Upgrade auf Pro (29,90€)</button>
+          <button className="btn btn-primary btn-sm" onClick={onUpgrade}>» Upgrade auf Pro (49€)</button>
         </div>
       )}
     </div>

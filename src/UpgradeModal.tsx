@@ -35,7 +35,7 @@ export function UpgradeModal({ auth, onClose }: UpgradeModalProps) {
     {
       id: "starter" as const,
       name: "Starter",
-      price: "14,90€",
+      price: "29€",
       features: [
         "Unbegrenzte Rechnungen",
         "Unbegrenzte Aufträge + Angebote",
@@ -49,7 +49,7 @@ export function UpgradeModal({ auth, onClose }: UpgradeModalProps) {
     {
       id: "pro" as const,
       name: "Pro",
-      price: "29,90€",
+      price: "49€",
       features: [
         "Alles aus Starter",
         "Email-Abholung (IMAP)",

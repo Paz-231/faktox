@@ -4,8 +4,8 @@ Stripe Setup Script — erstellt Products + Prices für Faktox.
 
 Preise (DACH-konform, zzgl. USt):
     Free:     0€/Monat
-    Starter:  14,90€/Monat
-    Pro:      29,90€/Monat
+    Starter:  29€/Monat
+    Pro:      49€/Monat
 
 Führt dies einmal aus um die Stripe Products anzulegen:
     export STRIPE_SECRET_KEY=sk_test_...
@@ -34,7 +34,7 @@ PLANS = [
     {
         "name": "Faktox Starter",
         "description": "Unbegrenzte Rechnungen + AI Foto-Scan + Mahnwesen + Eingangsrechnungen + monatlicher Report",
-        "amount": 1490,  # €14.90
+        "amount": 2900,  # €29.00
         "currency": "eur",
         "interval": "month",
         "env_var": "STRIPE_PRICE_STARTER",
@@ -42,7 +42,7 @@ PLANS = [
     {
         "name": "Faktox Pro",
         "description": "Alles aus Starter + Email-Abholung + EÜR + USt-Voranmeldung + DATEV-Export + Jahresbericht + mehrere Unternehmen",
-        "amount": 2990,  # €29.90
+        "amount": 4900,  # €49.00
         "currency": "eur",
         "interval": "month",
         "env_var": "STRIPE_PRICE_PRO",

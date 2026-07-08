@@ -475,12 +475,12 @@ export default function App() {
                 featured: false,
               },
               {
-                name: "Starter", price: "14,90€", period: "/Monat", sub: "Für Solo-Selbständige",
+                name: "Starter", price: "29€", period: "/Monat", sub: "Für Solo-Selbständige",
                 features: ["Unbegrenzte Rechnungen", "Unbegrenzte Aufträge + Angebote", "Foto/PDF Upload + AI Vision-Scan", "Mahnwesen (3 Stufen)", "Eingangsrechnungen unbegrenzt", "Buchhaltungs-Report (monatlich)"],
                 featured: true,
               },
               {
-                name: "Pro", price: "29,90€", period: "/Monat", sub: "Für Anspruchsvolle",
+                name: "Pro", price: "49€", period: "/Monat", sub: "Für Anspruchsvolle",
                 features: ["Alles aus Starter", "Email-Abholung (IMAP)", "EÜR (§4 Abs3 EStG)", "USt-Voranmeldung-Daten", "DATEV-Export", "Jahresbericht", "Mehrere Unternehmen"],
                 featured: false,
               },
@@ -593,7 +593,7 @@ export default function App() {
           <p className="section-subtitle">Alles, was du vor dem Start wissen willst.</p>
           <div className="faq-list">
             {[
-              { q: "Ist Faktox wirklich kostenlos?", a: "Ja. Der Free-Plan mit 3 Rechnungen und 3 Aufträgen pro Monat ist dauerhaft kostenlos — ohne Kreditkarte. Erst wenn du mehr brauchst, lohnt sich Starter (14,90€/Monat)." },
+              { q: "Ist Faktox wirklich kostenlos? Ja. Der Free-Plan mit 3 Rechnungen und 3 Aufträgen pro Monat ist dauerhaft kostenlos — ohne Kreditkarte. Erst wenn du mehr brauchst, lohnt sich Starter (29€/Monat)." },
               { q: "Sind die Rechnungen rechtskonform für Österreich und Deutschland?", a: "Ja. Faktox erstellt AT-Honorarnoten mit §6 Abs1 Z27 UStG-Hinweis und DE-Rechnungen mit §19 UStG. Kleinunternehmer-Regelung, Reverse Charge und Steuerstatus-Wechsel werden automatisch korrekt abgebildet. Faktox ersetzt keine Steuerberatung." },
               { q: "Wie funktioniert der Foto-Scan?", a: "Du lädst ein Foto oder PDF einer Rechnung hoch — die KI extrahiert Lieferant, Beträge, Steuersatz und Kategorie automatisch und legt die Eingangsrechnung sauber ab. Verfügbar ab dem Starter-Plan." },
               { q: "Was passiert mit meinen Daten?", a: "Deine Daten liegen verschlüsselt auf EU-Servern (Convex, Region eu-west-1). Tägliche automatische Backups, 90 Tage Aufbewahrung, jederzeit vollständiger JSON-Export mit einem Klick. DSGVO-konform." },
