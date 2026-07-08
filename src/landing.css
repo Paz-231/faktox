@@ -245,6 +245,12 @@
   position: relative;
 }
 
+.moat-icon {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+}
+
 .moat-item::before {
   content: "";
   display: block;

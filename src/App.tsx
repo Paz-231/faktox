@@ -7,6 +7,34 @@ import { useAuth } from "./useAuth";
 import { api } from "../convex/_generated/api";
 import { convexSiteUrl } from "./lib";
 
+// ── Minimal SVG Icons ───────────────────────────────────
+function Icon({ name, size = 20 }: { name: string; size?: number }) {
+  const icons: Record<string, React.ReactNode> = {
+      camera: <><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></>,
+      dach: <><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></>,
+      report: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></>,
+      mail: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></>,
+      bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
+      shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+      upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></>,
+      eye: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>,
+      relax: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></>,
+      check: <polyline points="20 6 9 17 4 12" />,
+      lock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+      refresh: <><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></>,
+      file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></>,
+      credit: <><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></>,
+      cancel: <><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></>,
+  };
+  const p = icons[name];
+  if (!p) return null;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {p}
+    </svg>
+  );
+}
+
 export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -159,10 +187,10 @@ export default function App() {
             </p>
             <SignupCta ctaLabel="Kostenlos starten" onDevLogin={(email) => openLogin(email)} />
             <div className="hero-trust">
-              <span>Keine Kreditkarte nötig</span>
-              <span>3 Rechnungen/Monat gratis</span>
-              <span>Jederzeit kündbar</span>
-            </div>
+                          <span><Icon name="credit" size={14} /> Keine Kreditkarte nötig</span>
+                          <span><Icon name="check" size={14} /> 3 Rechnungen/Monat gratis</span>
+                          <span><Icon name="cancel" size={14} /> Jederzeit kündbar</span>
+                        </div>
             <div className="scroll-hint">scroll</div>
           </motion.div>
         </motion.section>
@@ -269,26 +297,26 @@ export default function App() {
           {/* Feature cards */}
           <div className="features-grid" style={{ marginTop: "2.5rem" }}>
             {[
-              { label: "AI", title: "Foto & Voice-Eingabe", desc: "Fotografiere den Stundenzettel oder diktiere die Rechnung. KI extrahiert alle Daten automatisch." },
-              { label: "DACH", title: "AT & DE konform", desc: "Honorarnoten mit §6 Abs1 Z27 UStG. DE-Rechnungen mit §19 UStG. Kleinunternehmer-Logik automatisch." },
-              { label: "Report", title: "Buchhaltungs-Report", desc: "EÜR nach §4 Abs3 EStG, USt-Voranmeldung, DATEV-Export. Monatlich und jährlich. Steuerberater-fertig." },
-              { label: "Email", title: "Automatische Abholung", desc: "Rechnungen an eine spezielle Email-Adresse werden automatisch abgeholt, gescannt und abgelegt." },
-              { label: "Mahnwesen", title: "3-stufiges Mahnwesen", desc: "Zahlungserinnerung, 1. und 2. Mahnung. Automatisch generiert, lückenloser Nummernkreis." },
-              { label: "Audit", title: "Lückenlos & Storno", desc: "Rechnungsnummern atomar, fortlaufend, nie wiederverwendet. Jede Storno bekommt eine Storno-Rechnung." },
-            ].map((f, i) => (
-              <motion.div
-                key={i}
-                className="feature-card"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
-              >
-                <div className="feature-label">{f.label}</div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-              </motion.div>
-            ))}
+                          { icon: "camera", label: "AI", title: "Foto & Voice-Eingabe", desc: "Fotografiere den Stundenzettel oder diktiere die Rechnung. KI extrahiert alle Daten automatisch." },
+                          { icon: "dach", label: "DACH", title: "AT & DE konform", desc: "Honorarnoten mit §6 Abs1 Z27 UStG. DE-Rechnungen mit §19 UStG. Kleinunternehmer-Logik automatisch." },
+                          { icon: "report", label: "Report", title: "Buchhaltungs-Report", desc: "EÜR nach §4 Abs3 EStG, USt-Voranmeldung, DATEV-Export. Monatlich und jährlich. Steuerberater-fertig." },
+                          { icon: "mail", label: "Email", title: "Automatische Abholung", desc: "Rechnungen an eine spezielle Email-Adresse werden automatisch abgeholt, gescannt und abgelegt." },
+                          { icon: "bell", label: "Mahnwesen", title: "3-stufiges Mahnwesen", desc: "Zahlungserinnerung, 1. und 2. Mahnung. Automatisch generiert, lückenloser Nummernkreis." },
+                          { icon: "shield", label: "Audit", title: "Lückenlos & Storno", desc: "Rechnungsnummern atomar, fortlaufend, nie wiederverwendet. Jede Storno bekommt eine Storno-Rechnung." },
+                        ].map((f, i) => (
+                          <motion.div
+                            key={i}
+                            className="feature-card"
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-50px" }}
+                            transition={{ duration: 0.4, delay: i * 0.08 }}
+                          >
+                            <div className="feature-label"><Icon name={f.icon} size={14} /> {f.label}</div>
+                            <h3>{f.title}</h3>
+                            <p>{f.desc}</p>
+                          </motion.div>
+                        ))}
           </div>
         </motion.section>
 
@@ -304,24 +332,24 @@ export default function App() {
           <h2 className="section-title">So funktioniert's</h2>
           <p className="section-subtitle">Drei Schritte. Kein Handbuch nötig.</p>
           <div className="how-grid">
-            {[
-              { step: "01", title: "Erfassen", desc: "Foto vom Stundenzettel, Diktat oder ein paar Klicks — die KI füllt Empfänger, Positionen und Steuersatz automatisch aus." },
-              { step: "02", title: "Prüfen & Senden", desc: "Ein Blick auf die Vorschau, bestätigen, fertig. Nummernkreis, Steuertext und Zahlungsziel setzt Faktox korrekt." },
-              { step: "03", title: "Zurücklehnen", desc: "Faktox überwacht Zahlungseingänge, mahnt automatisch in 3 Stufen und legt alles für deinen Steuerberater ab." },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                className="how-item"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.12 }}
-              >
-                <div className="how-step">{s.step}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
-              </motion.div>
-            ))}
+                      {[
+                        { icon: "upload", step: "01", title: "Erfassen", desc: "Foto vom Stundenzettel, Diktat oder ein paar Klicks — die KI füllt Empfänger, Positionen und Steuersatz automatisch aus." },
+                        { icon: "eye", step: "02", title: "Prüfen & Senden", desc: "Ein Blick auf die Vorschau, bestätigen, fertig. Nummernkreis, Steuertext und Zahlungsziel setzt Faktox korrekt." },
+                        { icon: "relax", step: "03", title: "Zurücklehnen", desc: "Faktox überwacht Zahlungseingänge, mahnt automatisch in 3 Stufen und legt alles für deinen Steuerberater ab." },
+                      ].map((s, i) => (
+                        <motion.div
+                          key={i}
+                          className="how-item"
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.4, delay: i * 0.12 }}
+                        >
+                          <div className="how-step"><Icon name={s.icon} size={18} /></div>
+                          <h3>{s.title}</h3>
+                          <p>{s.desc}</p>
+                        </motion.div>
+                      ))}
           </div>
         </motion.section>
 
@@ -406,24 +434,25 @@ export default function App() {
           </div>
 
           <div className="moat-grid" style={{ marginTop: "2.5rem" }}>
-            {[
-              { title: "UID-Pflicht-Prüfung", desc: "USt-pflichtig ohne UID? Rechnung wird blockiert. Kein Steuerausweis ohne UID-Nummer." },
-              { title: "Steuerstatus-Wechsel", desc: "Vom Kleinunternehmer zur USt-Pflicht. System erkennt das Datum und wendet den korrekten Steuersatz an." },
-              { title: "Storno-Logik", desc: "Jede Storno-Rechnung hat eine eigene Nummer. Keine Lücken im Nummernkreis. Vollständiger Audit-Trail." },
-              { title: "DACH-Moat", desc: "AT/DE Steuerrecht, UStG, Kleinunternehmer-Regelung. US-Tools können das nicht leisten." },
-            ].map((m, i) => (
-              <motion.div
-                key={i}
-                className="moat-item"
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-              >
-                <h4>{m.title}</h4>
-                <p>{m.desc}</p>
-              </motion.div>
-            ))}
+                      {[
+                        { icon: "lock", title: "UID-Pflicht-Prüfung", desc: "USt-pflichtig ohne UID? Rechnung wird blockiert. Kein Steuerausweis ohne UID-Nummer." },
+                        { icon: "refresh", title: "Steuerstatus-Wechsel", desc: "Vom Kleinunternehmer zur USt-Pflicht. System erkennt das Datum und wendet den korrekten Steuersatz an." },
+                        { icon: "file", title: "Storno-Logik", desc: "Jede Storno-Rechnung hat eine eigene Nummer. Keine Lücken im Nummernkreis. Vollständiger Audit-Trail." },
+                        { icon: "shield", title: "DACH-Moat", desc: "AT/DE Steuerrecht, UStG, Kleinunternehmer-Regelung. US-Tools können das nicht leisten." },
+                      ].map((m, i) => (
+                        <motion.div
+                          key={i}
+                          className="moat-item"
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.4, delay: i * 0.1 }}
+                        >
+                          <div className="moat-icon"><Icon name={m.icon} size={18} /></div>
+                          <h4>{m.title}</h4>
+                          <p>{m.desc}</p>
+                        </motion.div>
+                      ))}
           </div>
         </motion.section>
 
