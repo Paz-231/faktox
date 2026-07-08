@@ -36,10 +36,12 @@ from pathlib import Path
 from datetime import datetime
 from email.header import decode_header
 
-STORAGE_DIR = Path("/opt/data/invoice-tool/incoming_files")
-DB_PATH = Path("/opt/data/invoice-tool/file_registry.json")
-INCOMING_DB = Path("/opt/data/invoice-tool/incoming_invoices.json")
-LOG_PATH = Path("/opt/data/invoice-tool/email_checker.log")
+from common import DATA_DIR, FILES_DIR, SCRIPTS_DIR, read_json, write_json_atomic
+
+STORAGE_DIR = FILES_DIR
+DB_PATH = DATA_DIR / "file_registry.json"
+INCOMING_DB = DATA_DIR / "incoming_invoices.json"
+LOG_PATH = DATA_DIR / "email_checker.log"
 
 VALID_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"}
 
@@ -94,11 +96,7 @@ def save_attachment(part, filename, email_date):
 
 def register_file(stored_path, original_name, invoice_number=""):
     """Registriert eine Datei im File-Registry."""
-    db_path = DB_PATH
-    if db_path.exists():
-        db = json.loads(db_path.read_text(encoding="utf-8"))
-    else:
-        db = {"files": []}
+    db = read_json(DB_PATH, {"files": []})
 
     p = Path(stored_path)
     db["files"].append({
@@ -111,7 +109,7 @@ def register_file(stored_path, original_name, invoice_number=""):
         "invoice_type": "incoming",
         "source": "email",
     })
-    db_path.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 
 def parse_email_date(msg):
@@ -268,7 +266,7 @@ def check_emails(args):
             log(f"   Scanne {f['name']}...")
             try:
                 result = subprocess.run(
-                    [sys.executable, "/opt/data/invoice-tool/scripts/scan_invoice.py",
+                    [sys.executable, str(SCRIPTS_DIR / "scan_invoice.py"),
                      f["path"], "--auto-add"],
                     capture_output=True, text=True, timeout=60,
                 )
@@ -286,8 +284,8 @@ def check_emails(args):
         "files_saved": len(saved_files),
         "files": saved_files,
     }
-    summary_path = Path("/opt/data/invoice-tool/email_checker_last.json")
-    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    summary_path = DATA_DIR / "email_checker_last.json"
+    write_json_atomic(summary_path, summary)
 
 
 def main():

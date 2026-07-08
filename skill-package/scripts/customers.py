@@ -9,17 +9,17 @@ Usage:
     python3 customers.py remove <name>
 """
 import json, sys, argparse
-from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path("/opt/data/invoice-tool/customers.json")
+from common import DATA_DIR, read_json, write_json_atomic
+
+DB_PATH = DATA_DIR / "customers.json"
 
 def load_db():
-    return json.loads(DB_PATH.read_text(encoding="utf-8")) if DB_PATH.exists() else {"customers": []}
+    return read_json(DB_PATH, {"customers": []})
 
 def save_db(db):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 def find_customer(name):
     db = load_db()

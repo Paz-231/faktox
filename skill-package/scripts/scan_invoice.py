@@ -15,7 +15,7 @@ Usage:
     python3 scan_invoice.py <file.jpg|file.pdf> [--out spec.json]
     python3 scan_invoice.py <file.jpg> --auto-add    # Scannt + speichert direkt als Eingangsrechnung
 
-Env: BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY, VISION_MODEL (default: openai/gpt-4o)
+Env: OPENROUTER_API_KEY, VISION_MODEL (default: openai/gpt-4o)
 """
 import json
 import sys
@@ -25,9 +25,11 @@ import base64
 import requests
 from pathlib import Path
 
+from common import SCRIPTS_DIR, api_key, api_url
+
 VISION_MODEL = os.environ.get("VISION_MODEL", "openai/gpt-4o")
-API_URL = os.environ.get("BUILT_IN_FORGE_API_URL", "https://openrouter.ai/api")
-API_KEY = os.environ.get("BUILT_IN_FORGE_API_KEY", "")
+API_URL = api_url()
+API_KEY = api_key()
 
 SYSTEM_PROMPT = """You are an invoice scanner for Austrian and German invoices (Eingangsrechnungen).
 
@@ -91,7 +93,7 @@ def file_to_base64(file_path):
 def scan_file(file_path):
     """Send file to Vision API and extract invoice data."""
     if not API_KEY:
-        print("❌ BUILT_IN_FORGE_API_KEY nicht gesetzt", file=sys.stderr)
+        print("❌ OPENROUTER_API_KEY nicht gesetzt", file=sys.stderr)
         sys.exit(1)
 
     p = Path(file_path)
@@ -110,6 +112,13 @@ def scan_file(file_path):
 
     data_url = file_to_base64(file_path)
 
+    # PDFs gehen als file-Content-Part (OpenRouter parst sie serverseitig),
+    # Bilder als image_url — image_url mit PDF lehnen die meisten Modelle ab.
+    if ext == ".pdf":
+        attachment = {"type": "file", "file": {"filename": p.name, "file_data": data_url}}
+    else:
+        attachment = {"type": "image_url", "image_url": {"url": data_url}}
+
     response = requests.post(
         f"{API_URL}/v1/chat/completions",
         headers={
@@ -122,16 +131,20 @@ def scan_file(file_path):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": [
                     {"type": "text", "text": "Extrahiere alle Rechnungsdaten aus diesem Dokument."},
-                    {"type": "image_url", "image_url": {"url": data_url}},
+                    attachment,
                 ]},
             ],
             "temperature": 0.1,
             "response_format": {"type": "json_object"},
         },
-        timeout=60,
+        timeout=120,
     )
     response.raise_for_status()
     content = response.json()["choices"][0]["message"]["content"]
+    # Mögliche Markdown-Fences entfernen, bevor geparst wird
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     result = json.loads(content)
     return result
 
@@ -167,7 +180,7 @@ def main():
         print("\n💾 Speichere als Eingangsrechnung...")
         import subprocess
         subprocess.run([
-            sys.executable, "/opt/data/invoice-tool/scripts/incoming.py",
+            sys.executable, str(SCRIPTS_DIR / "incoming.py"),
             "add-from-spec", str(out_path), "--pdf", args.file,
         ], check=True)
         print("✅ Als Eingangsrechnung gespeichert!")
@@ -176,7 +189,7 @@ def main():
     print("\n📁 Speichere Datei...")
     import subprocess
     subprocess.run([
-        sys.executable, "/opt/data/invoice-tool/scripts/file_manager.py",
+        sys.executable, str(SCRIPTS_DIR / "file_manager.py"),
         "store", args.file,
         "--invoice-number", result.get("invoice_number", ""),
     ], check=True)

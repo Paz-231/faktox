@@ -1,0 +1,34 @@
+FAKTOX INVOICE AGENT — EINZELPLATZ-LIZENZ
+
+© 2026 maighty Labs — faktox.online
+
+1. LIZENZUMFANG
+   Mit dem Kauf erhältst du das Recht, den Faktox Invoice Agent (Scripts,
+   Templates, Dokumentation) auf EINEM Arbeitsplatz für eigene geschäftliche
+   oder private Zwecke zu nutzen. Die Nutzung in mehreren eigenen
+   AI-Assistenten (z.B. Claude Code UND Cursor) auf demselben Arbeitsplatz
+   ist erlaubt.
+
+2. UPDATES
+   Fortlaufende Updates sind im Kaufpreis enthalten. Dein Download-Link
+   bleibt dauerhaft gültig und liefert immer die aktuellste Version.
+
+3. NICHT ERLAUBT
+   - Weiterverkauf, Vermietung oder Weitergabe des Pakets oder von Teilen
+     davon an Dritte
+   - Veröffentlichung des Quellcodes (auch nicht in öffentlichen Repos)
+   - Einbau in eigene kommerzielle Produkte ohne schriftliche Zustimmung
+
+4. ERLAUBT
+   - Anpassung der Scripts für den eigenen Bedarf
+   - Erstellung von Backups
+
+5. HAFTUNG
+   Die Software wird ohne Gewähr bereitgestellt. Sie ersetzt keine
+   Steuerberatung und keine rechtliche Beratung. Die Verantwortung für die
+   Richtigkeit ausgestellter Rechnungen und abgegebener Meldungen liegt
+   beim Nutzer. Haftung für indirekte Schäden ist ausgeschlossen, soweit
+   gesetzlich zulässig.
+
+6. SUPPORT
+   Fragen und Fehlermeldungen: paz@faktox.online

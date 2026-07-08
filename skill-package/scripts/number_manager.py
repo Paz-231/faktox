@@ -9,7 +9,7 @@ Features:
 - Vollständiges Audit-Log (wann, welche Nummer, welcher Status)
 - Sperrt Rechnungsnummern bis die Rechnung finalisiert ist (Reservierung)
 
-Datenbank: /opt/data/invoice-tool/number_sequence.json
+Datenbank: {FAKTOX_DATA_DIR}/number_sequence.json (Standard: ~/.faktox)
 
 Usage:
     python3 number_manager.py next [--type Honorarnote|Rechnung] [--year 2026]
@@ -23,27 +23,24 @@ Usage:
 import json
 import sys
 import argparse
-import fcntl
-from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path("/opt/data/invoice-tool/number_sequence.json")
+from common import DATA_DIR, file_lock, read_json, write_json_atomic
+
+DB_PATH = DATA_DIR / "number_sequence.json"
 
 
 def load_db():
-    if DB_PATH.exists():
-        return json.loads(DB_PATH.read_text(encoding="utf-8"))
-    return {
+    return read_json(DB_PATH, {
         "sequences": {},        # "2026": { "next": 1 }, "2027": { "next": 1 }
         "invoices": {},          # "RE-2026-000001": { status, reserved_at, finalized_at, ... }
         "storno_links": {},     # "RE-2026-000001": "STORNO-RE-2026-000001" (original → storno)
         "audit_log": [],        # [{ timestamp, action, number, details }]
-    }
+    })
 
 
 def save_db(db):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 
 def audit_log(db, action, number, details=""):
@@ -60,83 +57,86 @@ def format_number(seq, year, prefix="RE"):
 
 
 def cmd_next(args):
-    """Nächste freie Rechnungsnummer generieren und reservieren."""
-    db = load_db()
-    year = str(args.year or datetime.now().year)
+    """Nächste freie Rechnungsnummer generieren und reservieren (atomar via File-Lock)."""
+    with file_lock(DB_PATH):
+        db = load_db()
+        year = str(args.year or datetime.now().year)
 
-    # Initialize sequence for year if needed
-    if year not in db["sequences"]:
-        db["sequences"][year] = {"next": 1}
+        # Initialize sequence for year if needed
+        if year not in db["sequences"]:
+            db["sequences"][year] = {"next": 1}
 
-    # Get next number
-    seq = db["sequences"][year]["next"]
-    number = format_number(seq, year, prefix="RE")
+        # Get next number
+        seq = db["sequences"][year]["next"]
+        number = format_number(seq, year, prefix="RE")
 
-    # Check it doesn't already exist (shouldn't, but safety)
-    if number in db["invoices"]:
-        # Find next truly free number
-        while number in db["invoices"]:
-            seq += 1
-            number = format_number(seq, year)
+        # Check it doesn't already exist (shouldn't, but safety)
+        if number in db["invoices"]:
+            # Find next truly free number
+            while number in db["invoices"]:
+                seq += 1
+                number = format_number(seq, year)
 
-    # Reserve it
-    db["invoices"][number] = {
-        "status": "reserved",
-        "type": args.type or "Rechnung",
-        "year": year,
-        "sequence": seq,
-        "reserved_at": datetime.now().isoformat(),
-        "finalized_at": None,
-        "storno_of": None,
-        "storno_number": None,
-    }
-    db["sequences"][year]["next"] = seq + 1
-    audit_log(db, "next", number, f"Reserved as {args.type or 'Rechnung'}")
+        # Reserve it
+        db["invoices"][number] = {
+            "status": "reserved",
+            "type": args.type or "Rechnung",
+            "year": year,
+            "sequence": seq,
+            "reserved_at": datetime.now().isoformat(),
+            "finalized_at": None,
+            "storno_of": None,
+            "storno_number": None,
+        }
+        db["sequences"][year]["next"] = seq + 1
+        audit_log(db, "next", number, f"Reserved as {args.type or 'Rechnung'}")
 
-    save_db(db)
+        save_db(db)
     print(number)
 
 
 def cmd_reserve(args):
     """Bestehende Nummer als reserviert markieren (wenn manuell vergeben)."""
-    db = load_db()
-    number = args.number
-    if number in db["invoices"] and db["invoices"][number]["status"] == "finalized":
-        print(f"❌ {number} already finalized", file=sys.stderr)
-        sys.exit(1)
-    db["invoices"][number] = {
-        "status": "reserved",
-        "type": "Rechnung",
-        "year": number.split("-")[1] if "-" in number else str(datetime.now().year),
-        "sequence": int(number.split("-")[-1]) if "-" in number else 0,
-        "reserved_at": datetime.now().isoformat(),
-        "finalized_at": None,
-        "storno_of": None,
-        "storno_number": None,
-    }
-    audit_log(db, "reserve", number)
-    save_db(db)
+    with file_lock(DB_PATH):
+        db = load_db()
+        number = args.number
+        if number in db["invoices"] and db["invoices"][number]["status"] == "finalized":
+            print(f"❌ {number} already finalized", file=sys.stderr)
+            sys.exit(1)
+        db["invoices"][number] = {
+            "status": "reserved",
+            "type": "Rechnung",
+            "year": number.split("-")[1] if "-" in number else str(datetime.now().year),
+            "sequence": int(number.split("-")[-1]) if "-" in number else 0,
+            "reserved_at": datetime.now().isoformat(),
+            "finalized_at": None,
+            "storno_of": None,
+            "storno_number": None,
+        }
+        audit_log(db, "reserve", number)
+        save_db(db)
     print(f"✅ Reserved: {number}")
 
 
 def cmd_finalize(args):
     """Reservierung → final (PDF wurde erstellt)."""
-    db = load_db()
-    number = args.number
-    if number not in db["invoices"]:
-        print(f"❌ {number} not found in register", file=sys.stderr)
-        sys.exit(1)
-    if db["invoices"][number]["status"] == "finalized":
-        print(f"⚠️  {number} already finalized")
-        return
-    if db["invoices"][number]["status"] == "storno":
-        print(f"❌ {number} is a storno invoice", file=sys.stderr)
-        sys.exit(1)
+    with file_lock(DB_PATH):
+        db = load_db()
+        number = args.number
+        if number not in db["invoices"]:
+            print(f"❌ {number} not found in register", file=sys.stderr)
+            sys.exit(1)
+        if db["invoices"][number]["status"] == "finalized":
+            print(f"⚠️  {number} already finalized")
+            return
+        if db["invoices"][number]["status"] == "storno":
+            print(f"❌ {number} is a storno invoice", file=sys.stderr)
+            sys.exit(1)
 
-    db["invoices"][number]["status"] = "finalized"
-    db["invoices"][number]["finalized_at"] = datetime.now().isoformat()
-    audit_log(db, "finalize", number)
-    save_db(db)
+        db["invoices"][number]["status"] = "finalized"
+        db["invoices"][number]["finalized_at"] = datetime.now().isoformat()
+        audit_log(db, "finalize", number)
+        save_db(db)
     print(f"✅ Finalized: {number}")
 
 
@@ -147,66 +147,67 @@ def cmd_cancel(args):
     - Neue Storno-Rechnungsnummer wird generiert (STORNO-RE-YYYY-NNNNNN)
     - Storno-Nummer ist fortlaufend im gleichen Jahreskreis
     """
-    db = load_db()
-    original = args.number
+    with file_lock(DB_PATH):
+        db = load_db()
+        original = args.number
 
-    if original not in db["invoices"]:
-        print(f"❌ {original} not found in register", file=sys.stderr)
-        sys.exit(1)
+        if original not in db["invoices"]:
+            print(f"❌ {original} not found in register", file=sys.stderr)
+            sys.exit(1)
 
-    if db["invoices"][original]["status"] == "storno":
-        print(f"❌ {original} is already a storno invoice — cannot storno a storno", file=sys.stderr)
-        sys.exit(1)
+        if db["invoices"][original]["status"] == "storno":
+            print(f"❌ {original} is already a storno invoice — cannot storno a storno", file=sys.stderr)
+            sys.exit(1)
 
-    if db["invoices"][original].get("storno_of"):
-        print(f"❌ {original} is itself a storno invoice — cannot storno a storno", file=sys.stderr)
-        sys.exit(1)
+        if db["invoices"][original].get("storno_of"):
+            print(f"❌ {original} is itself a storno invoice — cannot storno a storno", file=sys.stderr)
+            sys.exit(1)
 
-    if db["invoices"][original].get("storno_number"):
-        print(f"❌ {original} already has a storno: {db['invoices'][original]['storno_number']}", file=sys.stderr)
-        sys.exit(1)
+        if db["invoices"][original].get("storno_number"):
+            print(f"❌ {original} already has a storno: {db['invoices'][original]['storno_number']}", file=sys.stderr)
+            sys.exit(1)
 
-    # Get original year
-    year = db["invoices"][original].get("year", str(datetime.now().year))
+        # Get original year
+        year = db["invoices"][original].get("year", str(datetime.now().year))
 
-    # Generate storno number (same sequence, STORNO- prefix)
-    if year not in db["sequences"]:
-        db["sequences"][year] = {"next": 1}
-    seq = db["sequences"][year]["next"]
-    storno_number = format_number(seq, year, prefix="STORNO-RE")
-
-    # Safety check
-    while storno_number in db["invoices"]:
-        seq += 1
+        # Generate storno number (same sequence, STORNO- prefix)
+        if year not in db["sequences"]:
+            db["sequences"][year] = {"next": 1}
+        seq = db["sequences"][year]["next"]
         storno_number = format_number(seq, year, prefix="STORNO-RE")
 
-    # Mark original as storno (but keep it in register!)
-    db["invoices"][original]["status"] = "storno"
-    db["invoices"][original]["storno_number"] = storno_number
-    db["invoices"][original]["storno_at"] = datetime.now().isoformat()
+        # Safety check
+        while storno_number in db["invoices"]:
+            seq += 1
+            storno_number = format_number(seq, year, prefix="STORNO-RE")
 
-    # Create storno invoice entry
-    db["invoices"][storno_number] = {
-        "status": "reserved",
-        "type": "Storno",
-        "year": year,
-        "sequence": seq,
-        "reserved_at": datetime.now().isoformat(),
-        "finalized_at": None,
-        "storno_of": original,
-        "storno_number": None,
-    }
+        # Mark original as storno (but keep it in register!)
+        db["invoices"][original]["status"] = "storno"
+        db["invoices"][original]["storno_number"] = storno_number
+        db["invoices"][original]["storno_at"] = datetime.now().isoformat()
 
-    # Link original → storno
-    db["storno_links"][original] = storno_number
+        # Create storno invoice entry
+        db["invoices"][storno_number] = {
+            "status": "reserved",
+            "type": "Storno",
+            "year": year,
+            "sequence": seq,
+            "reserved_at": datetime.now().isoformat(),
+            "finalized_at": None,
+            "storno_of": original,
+            "storno_number": None,
+        }
 
-    # Advance sequence
-    db["sequences"][year]["next"] = seq + 1
+        # Link original → storno
+        db["storno_links"][original] = storno_number
 
-    audit_log(db, "cancel", original, f"Storno created: {storno_number}")
-    audit_log(db, "storno_created", storno_number, f"Storno of {original}")
+        # Advance sequence
+        db["sequences"][year]["next"] = seq + 1
 
-    save_db(db)
+        audit_log(db, "cancel", original, f"Storno created: {storno_number}")
+        audit_log(db, "storno_created", storno_number, f"Storno of {original}")
+
+        save_db(db)
     print(storno_number)
 
 

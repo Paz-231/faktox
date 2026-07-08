@@ -27,11 +27,13 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
+from common import DATA_DIR
+
 # Databases
-OUTGOING_DB = Path("/opt/data/invoice-tool/invoices.json")
-INCOMING_DB = Path("/opt/data/invoice-tool/incoming_invoices.json")
-PROFILE_DB = Path("/opt/data/invoice-tool/business_profile.json")
-NUMBER_DB = Path("/opt/data/invoice-tool/number_sequence.json")
+OUTGOING_DB = DATA_DIR / "invoices.json"
+INCOMING_DB = DATA_DIR / "incoming_invoices.json"
+PROFILE_DB = DATA_DIR / "business_profile.json"
+NUMBER_DB = DATA_DIR / "number_sequence.json"
 
 
 def load_json(path):
@@ -471,7 +473,7 @@ def render_pdf_report(report_data, output_path, period_label, report_type):
     y -= 30
     c.setFont("Helvetica-Oblique", 8)
     c.drawString(left, y, "Dieser Report wurde automatisch generiert und ersetzt keine Steuerberatung.")
-    c.drawString(left, y - 12, f"Erstellt am {datetime.now().strftime('%d.%m.%Y um %H:%M')} — maightyOS Invoice Agent")
+    c.drawString(left, y - 12, f"Erstellt am {datetime.now().strftime('%d.%m.%Y um %H:%M')} — Faktox Invoice Agent")
 
     c.showPage()
     c.save()

@@ -11,16 +11,18 @@ Usage:
 """
 import json, sys, argparse
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
-DB_PATH = Path("/opt/data/invoice-tool/invoices.json")
+from common import DATA_DIR, read_json, write_json_atomic
+
+DB_PATH = DATA_DIR / "invoices.json"
 MAHNUNG = {
-    "remind": {"title": "ZAHLUNGSERINNERUNG", "intro": "wir möchten Sie daran erinnern, dass die folgende Rechnung noch offen ist:", "footer": "Bitte überweisen Sie den fälligen Betrag innerhalb der nächsten 7 Tage."},
-    "mahn1": {"title": "1. MAHNUNG", "intro": "trotz unserer Zahlungserinnerung haben wir den fälligen Betrag noch nicht erhalten:", "footer": "Wir bitten Sie, den ausstehenden Betrag innerhalb der nächsten 7 Tage zu überweisen."},
-    "mahn2": {"title": "2. MAHNUNG", "intro": "trotz unserer 1. Mahnung haben wir den fälligen Betrag immer noch nicht erhalten:", "footer": "Dies ist unsere letzte Mahnung. Sollte der Betrag nicht eingehen, behalten wir uns rechtliche Schritte vor."},
+    "remind": {"title": "ZAHLUNGSERINNERUNG", "intro": "wir möchten Sie daran erinnern, dass die folgende Rechnung noch offen ist:", "footer": "Bitte überweisen Sie den fälligen Betrag bis zum neuen Zahlungsziel. Sollte sich Ihre Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie es bitte als gegenstandslos."},
+    "mahn1": {"title": "1. MAHNUNG", "intro": "trotz unserer Zahlungserinnerung haben wir den fälligen Betrag noch nicht erhalten:", "footer": "Wir bitten Sie, den ausstehenden Betrag bis zum neuen Zahlungsziel zu überweisen."},
+    "mahn2": {"title": "2. MAHNUNG", "intro": "trotz unserer 1. Mahnung haben wir den fälligen Betrag immer noch nicht erhalten:", "footer": "Dies ist unsere letzte Mahnung. Sollte der Betrag nicht bis zum neuen Zahlungsziel eingehen, behalten wir uns rechtliche Schritte vor."},
 }
-def load_db(): return json.loads(DB_PATH.read_text(encoding="utf-8")) if DB_PATH.exists() else {"invoices": []}
-def save_db(db): DB_PATH.parent.mkdir(parents=True, exist_ok=True); DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+def load_db(): return read_json(DB_PATH, {"invoices": []})
+def save_db(db): write_json_atomic(DB_PATH, db)
 def find_inv(n, db=None): 
     db = db or load_db()
     return next((i for i in db["invoices"] if i["invoice_number"] == n), None)
@@ -54,30 +56,87 @@ def cmd_mahnung(args, mt):
     save_db(db)
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
     W, H = A4; left = 55; rx = W - 55
     out = Path(args.out) if args.out else Path(f"Mahnung_{args.invoice_number}_{mt}.pdf")
+    issuer = spec.get("issuer") or {}
+    recipient = spec.get("recipient") or {}
+    due = (datetime.now() + timedelta(days=7)).strftime("%d.%m.%Y")
+
     c = canvas.Canvas(str(out), pagesize=A4)
+    c.setTitle(f"{MAHNUNG[mt]['title']} zu {args.invoice_number}")
+
+    # Kopf
     c.setFont("Helvetica-Bold", 22); c.drawString(left, H-70, MAHNUNG[mt]["title"])
     c.setLineWidth(0.8); c.line(left, H-78, rx, H-78)
-    c.setFont("Helvetica-Bold", 9.2); c.drawRightString(rx, H-143, "Rechnungsnummer:")
-    c.setFont("Helvetica", 9.2); c.drawRightString(rx, H-158, args.invoice_number)
-    c.setFont("Helvetica", 9.5); c.drawString(left, H-220, MAHNUNG[mt]["intro"])
-    c.setFont("Helvetica-Bold", 10); c.drawString(left, H-250, f"Rechnungsbetrag: € {inv['gross_total']:.2f}")
-    c.setFont("Helvetica", 9.2); c.drawString(left, H-265, f"Rechnungsdatum: {inv.get('invoice_date', '?')}")
-    c.drawString(left, H-280, f"Empfänger: {inv.get('recipient_name', '?')}")
-    c.setFont("Helvetica", 9.5); c.drawString(left, H-310, MAHNUNG[mt]["footer"])
-    if (spec.get("issuer") or {}).get("iban"):
-        c.setFont("Helvetica-Bold", 11); c.drawString(left, H-340, "Bankverbindung")
+
+    # Absender (aus der Original-Rechnung)
+    y = H - 110
+    c.setFont("Helvetica-Bold", 11); c.drawString(left, y, "Absender")
+    c.setFont("Helvetica", 9.2)
+    for line in [issuer.get("name", ""), issuer.get("street", ""), issuer.get("postal_city_country", "")]:
+        if line:
+            y -= 14; c.drawString(left, y, line)
+    if uid := issuer.get("uid"):
+        y -= 14; c.drawString(left, y, f"UID: {uid}")
+
+    # Meta rechts: Mahndatum, Rechnungsnummer, neues Zahlungsziel
+    c.setFont("Helvetica-Bold", 9.2); c.drawRightString(rx - 90, H-110, "Datum:")
+    c.setFont("Helvetica", 9.2); c.drawRightString(rx, H-110, now)
+    c.setFont("Helvetica-Bold", 9.2); c.drawRightString(rx - 90, H-125, "Rechnungsnummer:")
+    c.setFont("Helvetica", 9.2); c.drawRightString(rx, H-125, args.invoice_number)
+    c.setFont("Helvetica-Bold", 9.2); c.drawRightString(rx - 90, H-140, "Neues Zahlungsziel:")
+    c.setFont("Helvetica", 9.2); c.drawRightString(rx, H-140, due)
+
+    # Empfänger
+    y -= 32
+    c.setFont("Helvetica-Bold", 11); c.drawString(left, y, "Empfänger")
+    c.setFont("Helvetica", 9.2)
+    for line in [recipient.get("name", inv.get("recipient_name", "")), recipient.get("street", ""), recipient.get("postal_city_country", "")]:
+        if line:
+            y -= 14; c.drawString(left, y, line)
+
+    # Anrede + Text
+    y -= 36
+    c.setFont("Helvetica", 9.5)
+    c.drawString(left, y, "Sehr geehrte Damen und Herren,")
+    y -= 20
+    c.drawString(left, y, MAHNUNG[mt]["intro"])
+
+    # Rechnungsdaten
+    y -= 30
+    c.setFont("Helvetica-Bold", 10); c.drawString(left, y, f"Rechnungsbetrag: € {inv['gross_total']:.2f}")
+    y -= 15
+    c.setFont("Helvetica", 9.2); c.drawString(left, y, f"Rechnungsnummer: {args.invoice_number}")
+    y -= 15
+    c.drawString(left, y, f"Rechnungsdatum: {inv.get('invoice_date', '?')}")
+
+    # Schlusstext
+    y -= 30
+    c.setFont("Helvetica", 9.5); c.drawString(left, y, MAHNUNG[mt]["footer"])
+
+    # Bankverbindung
+    if issuer.get("iban"):
+        y -= 35
+        c.setFont("Helvetica-Bold", 11); c.drawString(left, y, "Bankverbindung")
         bl = []
-        if o := spec["issuer"].get("bank_owner"): bl.append(("Inhaber:", o))
-        bl.append(("IBAN:", spec["issuer"]["iban"]))
-        if b := spec["issuer"].get("bic"): bl.append(("BIC:", b))
+        if o := issuer.get("bank_owner"): bl.append(("Inhaber:", o))
+        bl.append(("IBAN:", issuer["iban"]))
+        if b := issuer.get("bic"): bl.append(("BIC:", b))
         for i, (l, v) in enumerate(bl):
-            c.setFont("Helvetica-Bold", 9.2); c.drawString(left, H-358-i*15, l)
-            c.setFont("Helvetica", 9.2); c.drawString(150, H-358-i*15, v)
+            c.setFont("Helvetica-Bold", 9.2); c.drawString(left, y - 18 - i*15, l)
+            c.setFont("Helvetica", 9.2); c.drawString(150, y - 18 - i*15, v)
+        y -= 18 + len(bl) * 15
+
+    # Grußformel
+    y -= 30
+    c.setFont("Helvetica", 9.5)
+    c.drawString(left, y, "Mit freundlichen Grüßen")
+    if issuer.get("name"):
+        c.drawString(left, y - 15, issuer["name"])
+
     c.showPage(); c.save()
     print(f"✅ {MAHNUNG[mt]['title']}: {out}")
+    print(f"   Neues Zahlungsziel: {due}")
 
 def cmd_paid(args):
     db = load_db()

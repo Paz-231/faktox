@@ -18,7 +18,9 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path("/opt/data/invoice-tool/invoices.json")
+from common import DATA_DIR
+
+DB_PATH = DATA_DIR / "invoices.json"
 
 
 def main():
@@ -122,7 +124,7 @@ def main():
     print(f"   Gesamtvolumen: € {total:.2f}")
 
     # Also export incoming invoices if they exist
-    incoming_path = Path("/opt/data/invoice-tool/incoming_invoices.json")
+    incoming_path = DATA_DIR / "incoming_invoices.json"
     if incoming_path.exists():
         incoming_db = json.loads(incoming_path.read_text(encoding="utf-8"))
         incoming = incoming_db.get("invoices", [])

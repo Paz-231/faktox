@@ -5,7 +5,7 @@ Eingangsrechnungen — verwaltet an dich gestellte Rechnungen.
 Speichert Lieferanten-Rechnungen, trackt Zahlungsstatus, und integriert
 in den Buchhaltungs-Export.
 
-Datenbank: /opt/data/invoice-tool/incoming_invoices.json
+Datenbank: {FAKTOX_DATA_DIR}/incoming_invoices.json (Standard: ~/.faktox)
 
 Usage:
     python3 incoming.py add --number "RE-2026-123" --issuer "AWS" --date 2026-07-01 --amount 500.00 [--vat 100.00] [--uid "ATU..."]
@@ -22,18 +22,17 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path("/opt/data/invoice-tool/incoming_invoices.json")
+from common import DATA_DIR, read_json, write_json_atomic
+
+DB_PATH = DATA_DIR / "incoming_invoices.json"
 
 
 def load_db():
-    if DB_PATH.exists():
-        return json.loads(DB_PATH.read_text(encoding="utf-8"))
-    return {"invoices": []}
+    return read_json(DB_PATH, {"invoices": []})
 
 
 def save_db(db):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 
 def cmd_add(args):

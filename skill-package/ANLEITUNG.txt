@@ -1,0 +1,353 @@
+═══════════════════════════════════════════════════════════════════════
+  FAKTOX INVOICE AGENT — ANLEITUNG
+  Version 1.1.0 · © 2026 maighty Labs · faktox.online
+═══════════════════════════════════════════════════════════════════════
+
+Danke für deinen Kauf! Diese Anleitung enthält alles, was du brauchst,
+um mit dem Faktox Invoice Agent Rechnungen zu schreiben, Belege zu
+verwalten und deine Buchhaltung zu automatisieren.
+
+INHALT
+  1.  Was ist der Faktox Invoice Agent?
+  2.  Voraussetzungen
+  3.  Installation (Claude Code, Cursor, andere Assistenten)
+  4.  Erste Schritte: Unternehmensprofil einrichten
+  5.  Deine erste Rechnung
+  6.  Alle Funktionen im Überblick
+  7.  Wo liegen meine Daten? (Backup!)
+  8.  Umgebungsvariablen (KI-Scan, Email, Drive)
+  9.  Steuerlogik: Was der Agent automatisch richtig macht
+  10. Updates
+  11. Fehlerbehebung (FAQ)
+  12. Lizenz & Support
+
+───────────────────────────────────────────────────────────────────────
+1. WAS IST DER FAKTOX INVOICE AGENT?
+───────────────────────────────────────────────────────────────────────
+
+Ein Skill-Paket für AI-Assistenten (Claude Code, Cursor & Co.), das
+deinem Assistenten das Wissen und Werkzeug eines Buchhalters gibt:
+
+  · DACH-konforme Rechnungen & Honorarnoten als PDF (AT + DE)
+  · Lückenloser, fortlaufender Rechnungsnummernkreis mit Storno-Logik
+  · Steuerstatus-Verwaltung inkl. Wechsel (Kleinunternehmer → USt-Pflicht)
+  · Eingangsrechnungen erfassen — auch per Foto/PDF mit KI-Scan
+  · 3-stufiges Mahnwesen (Erinnerung, 1. Mahnung, 2. Mahnung)
+  · Kundenstamm
+  · Buchhaltungs-Reports: EÜR, USt-Voranmeldung, DATEV-Export
+
+Du redest einfach mit deinem Assistenten ("Schreib eine Rechnung an
+Herbert Thaler für 5 Stunden Beratung à 120 Euro") — der Assistent
+nutzt die mitgelieferten Scripts und erledigt den Rest korrekt.
+
+Alle Scripts funktionieren auch OHNE Assistenten direkt im Terminal.
+
+───────────────────────────────────────────────────────────────────────
+2. VORAUSSETZUNGEN
+───────────────────────────────────────────────────────────────────────
+
+  · Python 3.10 oder neuer          (prüfen mit:  python3 --version)
+  · pip                              (Paketmanager, bei Python dabei)
+  · Ein AI-Assistent (empfohlen: Claude Code oder Cursor) — optional
+  · Für den KI-Foto-Scan: ein OpenRouter-API-Key (openrouter.ai) — optional
+
+Betriebssysteme: macOS, Linux und Windows werden unterstützt.
+
+───────────────────────────────────────────────────────────────────────
+3. INSTALLATION
+───────────────────────────────────────────────────────────────────────
+
+Schritt 1 — Paket entpacken:
+
+    unzip faktox-invoice-agent.zip
+    (ergibt einen Ordner "faktox-invoice-agent")
+
+Schritt 2 — Als Skill installieren:
+
+  Claude Code:
+    mkdir -p ~/.claude/skills
+    cp -r faktox-invoice-agent ~/.claude/skills/
+    → Claude Code erkennt den Skill automatisch (SKILL.md).
+      Aufruf im Chat einfach per Aufgabe ("Schreib eine Rechnung ...")
+
+  Cursor:
+    mkdir -p ~/.cursor/skills
+    cp -r faktox-invoice-agent ~/.cursor/skills/
+
+  Anderer Assistent / ohne Assistent:
+    Ordner an einen beliebigen Ort legen (z.B. ~/faktox-invoice-agent)
+    und die Scripts direkt im Terminal nutzen.
+
+Schritt 3 — Python-Abhängigkeiten installieren:
+
+    cd faktox-invoice-agent
+    pip install -r requirements.txt
+
+  (Empfohlen in einem virtuellen Environment:
+    python3 -m venv faktox-venv
+    source faktox-venv/bin/activate      # Windows: faktox-venv\Scripts\activate
+    pip install -r requirements.txt )
+
+───────────────────────────────────────────────────────────────────────
+4. ERSTE SCHRITTE: UNTERNEHMENSPROFIL EINRICHTEN
+───────────────────────────────────────────────────────────────────────
+
+Bevor du die erste Rechnung schreibst, braucht der Agent deine
+Absenderdaten und deinen Steuerstatus. Einmalig ausführen (oder deinen
+Assistenten bitten: "Richte mein Faktox-Profil ein"):
+
+    python3 scripts/business_profile.py set \
+      --name "Max Mustermann" \
+      --street "Musterstraße 1" \
+      --city "1010 Wien, Österreich" \
+      --country AT \
+      --email "max@example.at" \
+      --phone "+43 676 1234567" \
+      --bank-owner "Max Mustermann" \
+      --iban "AT12 3456 7890 1234 5678" \
+      --bic "ABCDATWW"
+
+    # Steuerstatus setzen (Beispiel Kleinunternehmer):
+    python3 scripts/business_profile.py tax-status \
+      --status kleinunternehmer --from 2026-01-01
+
+    # Falls du USt-pflichtig bist: Status + UID setzen:
+    python3 scripts/business_profile.py tax-status --status ust_standard --from 2026-01-01
+    python3 scripts/business_profile.py uid "ATU12345678"
+
+    # Prüfen:
+    python3 scripts/business_profile.py show
+
+WICHTIG: Ohne UID weist der Agent grundsätzlich KEINE Umsatzsteuer aus
+(gesetzliche Vorgabe) — USt-pflichtige Rechnungen werden ohne UID
+blockiert. Das ist Absicht und schützt dich vor fehlerhaften Rechnungen.
+
+───────────────────────────────────────────────────────────────────────
+5. DEINE ERSTE RECHNUNG
+───────────────────────────────────────────────────────────────────────
+
+Mit Assistent (empfohlen) — sag einfach:
+
+    "Schreib eine Rechnung an Herbert Thaler, Kundenweg 42,
+     8010 Graz, für 5 Stunden Beratung à 120 Euro."
+
+Der Assistent zieht automatisch eine Rechnungsnummer, lädt deine
+Absenderdaten und deinen Steuerstatus aus dem Profil, erzeugt das PDF
+und registriert die Rechnung im Mahnwesen.
+
+Ohne Assistent (Terminal):
+
+    # 1. Rechnungsnummer ziehen (lückenlos, atomar):
+    python3 scripts/number_manager.py next --type Rechnung
+    → z.B. RE-2026-000001
+
+    # 2. Spec-Datei erstellen (Vorlage kopieren und anpassen):
+    cp templates/at_honorarnote_kleinunternehmer.json meine_rechnung.json
+    (invoice_number, Empfänger und Positionen anpassen; "issuer" kannst
+     du löschen — er kommt automatisch aus deinem Profil)
+
+    # 3. PDF erzeugen:
+    python3 scripts/generate_invoice.py meine_rechnung.json --out Rechnung_RE-2026-000001.pdf
+
+    # 4. Nummer finalisieren + im Mahnwesen registrieren:
+    python3 scripts/number_manager.py finalize RE-2026-000001
+    python3 scripts/mahnwesen.py register Rechnung_RE-2026-000001.json
+
+───────────────────────────────────────────────────────────────────────
+6. ALLE FUNKTIONEN IM ÜBERBLICK
+───────────────────────────────────────────────────────────────────────
+
+KUNDENSTAMM
+    python3 scripts/customers.py add "Kunde GmbH" --street "Weg 1" --city "1010 Wien, Österreich" --uid "ATU..." --email "office@kunde.at"
+    python3 scripts/customers.py list
+    python3 scripts/customers.py find "Kunde"
+    python3 scripts/customers.py update "Kunde GmbH" --email "neu@kunde.at"
+
+RECHNUNG STORNIEREN (nie löschen!)
+    python3 scripts/number_manager.py cancel RE-2026-000003
+    → gibt eine STORNO-Nummer zurück (z.B. STORNO-RE-2026-000004).
+    Die Originalrechnung bleibt im Register, der Nummernkreis bleibt
+    lückenlos. Danach Storno-Rechnung mit negativen Beträgen erstellen.
+
+NUMMERNKREIS PRÜFEN
+    python3 scripts/number_manager.py list
+    python3 scripts/number_manager.py check     ← Konsistenz-Check (Lücken, Duplikate)
+
+EINGANGSRECHNUNGEN (Belege, die DU erhältst)
+    # Per KI-Scan (Foto oder PDF):
+    python3 scripts/scan_invoice.py beleg.jpg --auto-add
+    # Manuell:
+    python3 scripts/incoming.py add --number "R-123" --issuer "AWS" --date 2026-07-01 --amount 120.00 --vat 20.00 --category "Server"
+    # Verwalten:
+    python3 scripts/incoming.py list --status open
+    python3 scripts/incoming.py paid "R-123"
+    python3 scripts/incoming.py summary
+
+MAHNWESEN (3 Stufen, je ~7 Tage Abstand empfohlen)
+    python3 scripts/mahnwesen.py list
+    python3 scripts/mahnwesen.py remind RE-2026-000001    ← Zahlungserinnerung
+    python3 scripts/mahnwesen.py mahn1  RE-2026-000001    ← 1. Mahnung
+    python3 scripts/mahnwesen.py mahn2  RE-2026-000001    ← 2. Mahnung (letzte)
+    python3 scripts/mahnwesen.py paid   RE-2026-000001    ← Zahlung eingegangen
+
+REPORTS & STEUERBERATER
+    python3 scripts/report_generator.py monthly --month 2026-07    ← Monatsreport (PDF+CSV)
+    python3 scripts/report_generator.py yearly --year 2026         ← Jahresbericht/EÜR
+    python3 scripts/report_generator.py ustva --month 2026-07      ← USt-Voranmeldung
+    python3 scripts/report_generator.py euer --year 2026           ← nur EÜR
+    python3 scripts/export_csv.py --out export.csv                 ← DATEV-/Excel-Export
+
+EMAIL-ABHOLUNG (Belege automatisch aus dem Postfach holen)
+    Env-Vars setzen (siehe Abschnitt 8), dann:
+    python3 scripts/email_checker.py --auto-add --mark-read
+    Tipp: als täglichen Cronjob einrichten — dann landen gemailte
+    Belege vollautomatisch gescannt in deiner Buchhaltung.
+
+GOOGLE-DRIVE-UPLOAD (optional)
+    python3 scripts/upload_to_drive.py Rechnung.pdf Rechnung.json --folder <FOLDER_ID>
+
+───────────────────────────────────────────────────────────────────────
+7. WO LIEGEN MEINE DATEN? (BACKUP!)
+───────────────────────────────────────────────────────────────────────
+
+Alle Daten liegen als offene JSON-Dateien in EINEM Ordner:
+
+    ~/.faktox/                       (Standard)
+    ├── business_profile.json        Profil, Steuerstatus- & UID-Historie
+    ├── number_sequence.json         Nummernkreis + Audit-Log
+    ├── invoices.json                Ausgangsrechnungen (Mahnwesen-Register)
+    ├── incoming_invoices.json       Eingangsrechnungen
+    ├── customers.json               Kundenstamm
+    ├── file_registry.json           Datei-Register
+    └── incoming_files/JJJJ/MM/      Original-Belege (PDFs, Fotos)
+
+Anderen Ort verwenden? Umgebungsvariable setzen:
+    export FAKTOX_DATA_DIR="/pfad/zu/meinen/daten"
+
+BACKUP: Sichere den kompletten Ordner regelmäßig (Time Machine, Cloud-
+Sync, Kopie auf USB — egal). Ordner kopieren = vollständiges Backup.
+Tipp: FAKTOX_DATA_DIR direkt in einen synchronisierten Ordner legen
+(z.B. ~/Dropbox/faktox) — dann ist jedes Backup automatisch.
+
+───────────────────────────────────────────────────────────────────────
+8. UMGEBUNGSVARIABLEN
+───────────────────────────────────────────────────────────────────────
+
+    FAKTOX_DATA_DIR      Datenverzeichnis (Standard: ~/.faktox)
+
+  Für KI-Funktionen (Foto-Scan, Text-Parsing):
+    OPENROUTER_API_KEY   API-Key von openrouter.ai (sk-or-...)
+    VISION_MODEL         Vision-Modell (Standard: openai/gpt-4o)
+    LLM_MODEL            Text-Modell (Standard: anthropic/claude-sonnet-5)
+
+  Für Email-Abholung:
+    IMAP_HOST            z.B. imap.gmail.com
+    IMAP_PORT            Standard: 993 (SSL)
+    IMAP_USER            deine Email-Adresse
+    IMAP_PASSWORD        Passwort oder App-Passwort
+    IMAP_FOLDER          Standard: INBOX
+    INVOICE_EMAIL_FILTER optional: nur Mails an diese Adresse verarbeiten
+
+  Für Google-Drive-Upload:
+    GOOGLE_APPLICATION_CREDENTIALS   Pfad zur Service-Account-JSON
+    DRIVE_FOLDER_ID                  Ziel-Ordner-ID
+
+Dauerhaft setzen: in ~/.zshrc bzw. ~/.bashrc eintragen
+(Windows: Systemsteuerung → Umgebungsvariablen).
+
+───────────────────────────────────────────────────────────────────────
+9. STEUERLOGIK: WAS DER AGENT AUTOMATISCH RICHTIG MACHT
+───────────────────────────────────────────────────────────────────────
+
+  · Kleinunternehmer (AT §6 Abs1 Z27 UStG / DE §19 UStG): 0% USt,
+    korrekter Pflichthinweis auf der Rechnung, kein Steuerausweis.
+  · UID-Pflicht: USt wird NUR ausgewiesen, wenn eine UID im Profil
+    hinterlegt ist. Ohne UID → Rechnung wird blockiert (kein
+    unzulässiger Steuerausweis möglich).
+  · Steuerstatus-Wechsel: Wechselst du z.B. am 01.07. von
+    Kleinunternehmer zu USt-Pflicht, bekommen Rechnungen mit Datum vor
+    dem 01.07. weiterhin 0% + Kleinunternehmer-Hinweis, Rechnungen ab
+    dem 01.07. den vollen Steuersatz. Der Stichtag wird pro Rechnung
+    aus deiner Steuerstatus-Historie ermittelt.
+  · Steuersätze: AT 20% / ermäßigt 10%, DE 19% / ermäßigt 7%,
+    Reverse Charge 0% mit Pflichthinweis (DE: §13b UStG).
+  · Storno: Stornierte Rechnungen behalten ihre Nummer, die
+    Storno-Rechnung bekommt eine eigene fortlaufende Nummer — der
+    Nummernkreis bleibt lückenlos und finanzamtsfest.
+  · Kleinunternehmergrenzen (Stand 2026): AT €55.000 Jahresumsatz,
+    DE €25.000 Vorjahr / €100.000 laufendes Jahr. Ob du die Grenze
+    überschreitest, musst du selbst im Blick behalten — beim Wechsel
+    einfach den neuen Status mit Stichtag setzen (Abschnitt 4).
+
+WICHTIG: Der Faktox Invoice Agent ersetzt keine Steuerberatung.
+Bei Unsicherheiten: Steuerberater fragen.
+
+───────────────────────────────────────────────────────────────────────
+10. UPDATES
+───────────────────────────────────────────────────────────────────────
+
+Updates sind im Kaufpreis enthalten. Dein persönlicher Download-Link
+(aus der Kauf-Email) bleibt dauerhaft gültig und bietet immer die
+aktuellste Version an.
+
+Update einspielen: neue Version herunterladen, entpacken und den
+Skill-Ordner ersetzen. Deine Daten sind davon nicht betroffen — sie
+liegen getrennt in ~/.faktox/ (Abschnitt 7).
+
+Was sich geändert hat, steht in CHANGELOG.md.
+
+───────────────────────────────────────────────────────────────────────
+11. FEHLERBEHEBUNG (FAQ)
+───────────────────────────────────────────────────────────────────────
+
+„ModuleNotFoundError: No module named 'reportlab'"
+    → pip install -r requirements.txt
+      (im richtigen Environment? source faktox-venv/bin/activate)
+
+„UID-PFLICHT: ... Steuern dürfen nur ausgewiesen werden wenn eine
+ UID-Nummer vorhanden ist"
+    → Gewollt! Entweder UID setzen:
+      python3 scripts/business_profile.py uid "ATU12345678"
+      oder Steuerstatus auf kleinunternehmer stellen.
+
+„STEUERRECHTLICHER KONFLIKT: Unternehmen ist Kleinunternehmer, aber
+ tax_mode=... wurde gesetzt"
+    → Dein Profil sagt Kleinunternehmer, die Rechnung will USt
+      ausweisen. Entferne tax_mode aus der Spec oder wechsle den
+      Steuerstatus im Profil (mit Stichtag!).
+
+„OPENROUTER_API_KEY nicht gesetzt"
+    → Nur nötig für Foto-Scan/Text-Parsing. Key auf openrouter.ai
+      erstellen und exportieren: export OPENROUTER_API_KEY="sk-or-..."
+
+„Datenbank gesperrt (Lock: ...)"
+    → Ein anderer Faktox-Prozess läuft gerade. Kurz warten. Bleibt der
+      Fehler länger als 1 Minute: die .lock-Datei im Datenverzeichnis
+      löschen (verwaiste Locks werden sonst nach 60 s automatisch
+      aufgeräumt).
+
+„Der KI-Scan liefert falsche Beträge"
+    → Extrahierte Daten immer kurz prüfen (der Assistent zeigt sie dir
+      zur Bestätigung). Bei schlechten Fotos: neu fotografieren, gutes
+      Licht, gerade von oben.
+
+Rechnung nachträglich ändern?
+    → Nein — ausgestellte Rechnungen sind unveränderlich. Stattdessen
+      stornieren (Abschnitt 6) und neu ausstellen. Genau so will es
+      das Finanzamt.
+
+Windows: „python3 nicht gefunden"
+    → Unter Windows heißt der Befehl meist "python" statt "python3".
+
+───────────────────────────────────────────────────────────────────────
+12. LIZENZ & SUPPORT
+───────────────────────────────────────────────────────────────────────
+
+Lizenz:   Einzelplatz-Lizenz, Details in LICENSE.txt
+Support:  paz@faktox.online
+Web:      https://faktox.online
+
+Tipp: Wenn du lieber eine fertige Web-App statt eines Skills willst —
+Faktox gibt es auch als SaaS auf faktox.online (Free-Plan verfügbar).
+
+Viel Erfolg mit deiner Buchhaltung!

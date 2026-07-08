@@ -13,7 +13,7 @@ Features:
 - Audit-Log aller Änderungen
 - UID-Änderungen werden versioniert
 
-Datenbank: /opt/data/invoice-tool/business_profile.json
+Datenbank: {FAKTOX_DATA_DIR}/business_profile.json (Standard: ~/.faktox)
 
 Usage:
     python3 business_profile.py show                              # Aktuelles Profil anzeigen
@@ -29,10 +29,11 @@ Usage:
 import json
 import sys
 import argparse
-from pathlib import Path
 from datetime import datetime, date
 
-DB_PATH = Path("/opt/data/invoice-tool/business_profile.json")
+from common import DATA_DIR, write_json_atomic
+
+DB_PATH = DATA_DIR / "business_profile.json"
 
 VALID_LEGAL_FORMS = [
     "einzelunternehmen",
@@ -48,13 +49,18 @@ VALID_LEGAL_FORMS = [
     "sole_trader",
 ]
 
+# Kleinunternehmergrenzen (Stand 2026):
+#   AT: €55.000 Jahresumsatz (§6 Abs1 Z27 UStG, seit 01.01.2025 — davor €35.000)
+#   DE: €25.000 Vorjahresumsatz / €100.000 laufendes Jahr (§19 UStG, seit 01.01.2025)
+# Ob die Grenze überschritten ist, prüft der Unternehmer selbst — bei Wechsel:
+#   python3 business_profile.py tax-status --status ust_standard --from <Stichtag>
 VALID_TAX_STATUSES = [
     "kleinunternehmer",      # AT: §6 Abs1 Z27 UStG, DE: §19 UStG — 0% USt
     "ust_standard",          # Regulär umsatzsteuerpflichtig (AT 20%, DE 19%)
     "ust_ermaessigt",        # Ermäßigter Steuersatz (AT 10%/13%, DE 7%) — nur für bestimmte Leistungen
     "reverse_charge",        # Steuerschuldnerschaft des Leistungsempfängers
     "befreit",               # Von USt befreit (z.B. ärztliche Heilbehandlung)
-    "nicht_uid_pflichtig",   # Unter der UID-Grenze (AT: €35.000)
+    "nicht_uid_pflichtig",   # Unter der Kleinunternehmergrenze (AT: €55.000 seit 2025)
 ]
 
 # Default tax rates per status and country
@@ -114,8 +120,7 @@ def load_db():
 
 
 def save_db(db):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 
 def audit(db, action, details):
@@ -215,12 +220,12 @@ def cmd_show(args):
     print("  UNTERNEHMENSPROFIL (aktuell)")
     print("════════════════════════════════════════════")
     base = db["base"]
-    print(f"  Name:           {base.get('name', '❌ nicht gesetzt')}")
-    print(f"  Rechtsform:     {base.get('legal_form', 'einzelunternehmen')}")
+    print(f"  Name:           {base.get('name') or '❌ nicht gesetzt'}")
+    print(f"  Rechtsform:     {base.get('legal_form') or 'einzelunternehmen'}")
     if lf := LEGAL_FORM_INFO.get(base.get("legal_form", ""), {}):
         print(f"  Suffix:         {lf.get('suffix', '-')}")
-    print(f"  Adresse:        {base.get('street', '❌')}")
-    print(f"                 {base.get('postal_city_country', '❌')}")
+    print(f"  Adresse:        {base.get('street') or '❌ nicht gesetzt'}")
+    print(f"                 {base.get('postal_city_country') or '❌ nicht gesetzt'}")
     print(f"  Land:           {base.get('country', 'AT')}")
     if uid:
         print(f"  UID:            {uid.get('uid', '—')}")

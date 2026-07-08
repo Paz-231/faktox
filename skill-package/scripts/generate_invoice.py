@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-maightyOS Rechnungs-Agent — PDF Generator
+Faktox Invoice Agent — PDF Generator
 Generates AT-Honorarnote or DE-Rechnung from a JSON spec.
 
 Usage:
@@ -18,6 +18,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.pdfbase.pdfmetrics import stringWidth
+
+from common import DATA_DIR
+
+PROFILE_PATH = DATA_DIR / "business_profile.json"
 
 
 # ─── Validation ──────────────────────────────────────────────────────────────
@@ -51,7 +55,7 @@ TAX_RATES = {
 # Override per country
 TAX_RATES_DE = {
     "ust_standard": 19.0,
-    "ust_ermaezigt": 7.0,
+    "ust_ermaessigt": 7.0,
 }
 
 TAX_NOTES = {
@@ -155,13 +159,13 @@ def resolve_country(data):
 
 
 def resolve_tax_note(data, country):
-    tax_mode = data.get("tax_mode", "kleinunternehmer")
     if tax_note := data.get("tax_note"):
         return tax_note
-    if tax_mode in TAX_NOTES and country in TAX_NOTES[tax_mode]:
+    # Nur wenn die Spec explizit einen tax_mode setzt — sonst KEIN Default auf
+    # kleinunternehmer (der Status kommt dann aus dem Profil).
+    tax_mode = data.get("tax_mode")
+    if tax_mode and tax_mode in TAX_NOTES and country in TAX_NOTES[tax_mode]:
         return TAX_NOTES[tax_mode][country]
-    if tax_mode == "ust_standard" and tax_mode not in TAX_NOTES:
-        return ""
     return ""
 
 
@@ -186,11 +190,10 @@ def _load_rate_from_profile(data, country):
 
 def _get_tax_status_for_date(data):
     """Get the full tax status entry valid for the invoice date from business_profile."""
-    profile_path = Path("/opt/data/invoice-tool/business_profile.json")
-    if not profile_path.exists():
+    if not PROFILE_PATH.exists():
         return None
     try:
-        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         inv_date_str = data.get("invoice_date", "")
         if not inv_date_str:
             return None
@@ -225,11 +228,10 @@ def _parse_invoice_date(date_str):
 
 def _load_tax_note_from_profile(data, country):
     """Load tax note from business_profile based on invoice date."""
-    profile_path = Path("/opt/data/invoice-tool/business_profile.json")
-    if not profile_path.exists():
+    if not PROFILE_PATH.exists():
         return None
     try:
-        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         inv_date_str = data.get("invoice_date", "")
         if not inv_date_str:
             return None
@@ -284,11 +286,10 @@ def get_tax_note_from_status(status, country):
 
 def _load_issuer_from_profile(data):
     """Load issuer data from business_profile if not explicitly set in spec."""
-    profile_path = Path("/opt/data/invoice-tool/business_profile.json")
-    if not profile_path.exists():
+    if not PROFILE_PATH.exists():
         return None
     try:
-        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         base = profile.get("base", {})
         if not base.get("name"):
             return None
@@ -399,11 +400,15 @@ def render_pdf(invoice, output_path):
         # Override: tax_rate auf 0 setzen, kein Steuerausweis ohne UID
         tax_rate = 0.0
 
-    # Load tax note from profile if not explicitly set
+    # Load tax note: Spec > Profil-Status (zum Rechnungsdatum) > expliziter tax_mode.
+    # Wichtig: Hat das Profil einen Status für das Datum (z.B. ust_standard → kein
+    # Hinweis nötig), darf NICHT auf den Kleinunternehmer-Hinweis zurückgefallen werden.
     tax_note = invoice.get("tax_note")
     if not tax_note:
-        tax_note = _load_tax_note_from_profile(invoice, country)
-        if not tax_note:
+        profile_status = _get_tax_status_for_date(invoice)
+        if profile_status is not None and not invoice.get("tax_mode"):
+            tax_note = get_tax_note_from_status(profile_status.get("status", ""), country)
+        else:
             tax_note = resolve_tax_note(invoice, country)
 
     # Calculate totals

@@ -1,0 +1,13 @@
+# Faktox Invoice Agent — Python-Abhängigkeiten
+# Installation:  pip install -r requirements.txt
+
+# PDF-Generierung (Rechnungen, Mahnungen, Reports)
+reportlab>=4.0
+
+# HTTP-Client für KI-Funktionen (Vision-Scan, Text-Parsing)
+requests>=2.31
+
+# ── Optional: nur für Google-Drive-Upload (upload_to_drive.py) ──
+# google-api-python-client
+# google-auth
+# google-auth-httplib2

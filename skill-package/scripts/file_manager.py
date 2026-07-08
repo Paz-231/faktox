@@ -2,7 +2,7 @@
 """
 Datei-Manager — speichert hochgeladene Rechnungs-PDFs und Fotos strukturiert ab.
 
-Legt Dateien ab in: /opt/data/invoice-tool/incoming_files/{YYYY}/{MM}/
+Legt Dateien ab in: {FAKTOX_DATA_DIR}/incoming_files/{YYYY}/{MM}/ (Standard: ~/.faktox)
 Dateiname: {YYYYMMDD}_{original_name}
 
 Usage:
@@ -18,21 +18,20 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-STORAGE_DIR = Path("/opt/data/invoice-tool/incoming_files")
-DB_PATH = Path("/opt/data/invoice-tool/file_registry.json")
+from common import DATA_DIR, FILES_DIR, read_json, write_json_atomic
+
+STORAGE_DIR = FILES_DIR
+DB_PATH = DATA_DIR / "file_registry.json"
 
 VALID_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".tiff", ".bmp", ".gif"}
 
 
 def load_db():
-    if DB_PATH.exists():
-        return json.loads(DB_PATH.read_text(encoding="utf-8"))
-    return {"files": []}
+    return read_json(DB_PATH, {"files": []})
 
 
 def save_db(db):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DB_PATH.write_text(json.dumps(db, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_atomic(DB_PATH, db)
 
 
 def cmd_store(args):
