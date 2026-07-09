@@ -49,7 +49,7 @@ export const requestMagicLink = mutation({
       const timeSinceLastRequest = Date.now() - (user!.magicLinkExpiry - TOKEN_EXPIRY_MS);
       if (timeSinceLastRequest < RATE_LIMIT_MS) {
         const waitSec = Math.ceil((RATE_LIMIT_MS - timeSinceLastRequest) / 1000);
-        throw new Error(`Bitte warte ${waitSec}s vor der nächsten Anfrage`);
+        return { success: false, message: `Bitte warte ${waitSec}s vor der nächsten Anfrage`, dev: false };
       }
     }
 

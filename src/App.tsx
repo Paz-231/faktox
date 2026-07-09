@@ -730,6 +730,11 @@ function SignupCta({ ctaLabel, onDevLogin }: { ctaLabel: string; onDevLogin: (em
       // Capture email for marketing regardless of login outcome
       joinWaitlist({ email }).catch(() => {});
       const result = await requestMagicLink({ email });
+      if (result.success === false) {
+        setError(result.message || "Bitte warte vor der nächsten Anfrage");
+        setState("error");
+        return;
+      }
       if (result.dev) {
         // No email provider configured — hand over to the login modal
         // where the dev token can be entered manually.
@@ -842,6 +847,10 @@ function LoginModal({ initialEmail, onClose }: { initialEmail?: string; onClose:
     setBusy(true);
     try {
       const result = await requestMagicLink({ email });
+      if (result.success === false) {
+        setError(result.message || "Bitte warte vor der nächsten Anfrage");
+        return;
+      }
       if (result.dev && result.token) {
         // Dev mode — token comes back directly
         setDevMode(true);
