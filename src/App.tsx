@@ -192,6 +192,7 @@ export default function App() {
             <span style={{ fontSize: "1.125rem", lineHeight: 1 }}>≡</span>
           </button>
         </nav>
+        <div className="landing-nav-spacer" />
 
         {/* Mobile drawer */}
         {mobileNavOpen && (

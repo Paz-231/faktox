@@ -25,10 +25,12 @@
   z-index: 1;
 }
 
-/* Nav — sticky mit Glas-Morph-Effekt */
+/* Nav — fixed mit Glas-Morph-Effekt, immer oben */
 .landing-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
   display: flex;
   justify-content: space-between;
@@ -54,6 +56,11 @@
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
   .landing-nav { background: rgba(10, 10, 10, 0.55); }
   .landing-nav.scrolled { background: rgba(10, 10, 10, 0.75); }
+}
+
+/* Spacer damit Content nicht unter dem fixed nav verschwindet */
+.landing-nav-spacer {
+  height: 3.5rem;
 }
 
 .landing-nav-logo {
