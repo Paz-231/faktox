@@ -90,6 +90,30 @@ export const markPaid = mutation({
   },
 });
 
+// Delete incoming invoice
+export const remove = mutation({
+  args: {
+    invoiceId: v.id("incomingInvoices"),
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx, args.sessionToken);
+    const inv = await ctx.db.get(args.invoiceId);
+    if (!inv) throw new Error("Rechnung nicht gefunden");
+    if (inv.userId !== userId) throw new Error("Zugriff verweigert");
+
+    const number = inv.number || "unbekannt";
+    await ctx.db.delete(args.invoiceId);
+
+    await ctx.db.insert("auditLog", {
+      userId,
+      action: "incoming_deleted",
+      details: `${number} — geloescht`,
+      timestamp: Date.now(),
+    });
+  },
+});
+
 // Summary for dashboard
 export const summary = query({
   args: { userId: v.id("users"), sessionToken: v.string() },

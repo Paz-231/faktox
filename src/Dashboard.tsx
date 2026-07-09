@@ -459,6 +459,7 @@ function IncomingPage({ userId, sessionToken }: { userId: any; sessionToken: str
 
   const invoices = useQuery(api.incoming.list, { userId, sessionToken }) ?? [];
   const markPaid = useMutation(api.incoming.markPaid);
+  const removeIncoming = useMutation(api.incoming.remove);
 
   const statusBadge = (status: string) => {
     const map: Record<string, { text: string; class: string }> = {
@@ -478,6 +479,12 @@ function IncomingPage({ userId, sessionToken }: { userId: any; sessionToken: str
       sessionToken,
       paidDate: new Date().toLocaleDateString("de-AT"),
     });
+  };
+
+  const handleDelete = async (e: React.MouseEvent, invoiceId: string, number: string) => {
+    e.stopPropagation();
+    if (!confirm(`Eingangsrechnung ${number} wirklich loeschen?`)) return;
+    await removeIncoming({ invoiceId: invoiceId as any, sessionToken });
   };
 
   return (
@@ -539,11 +546,16 @@ function IncomingPage({ userId, sessionToken }: { userId: any; sessionToken: str
                   <td style={{ fontWeight: 600 }}>{money(inv.grossAmount)}</td>
                   <td>{statusBadge(inv.status)}</td>
                   <td>
-                    {inv.status === "open" && (
-                      <button className="btn btn-sm" onClick={(e) => handleMarkPaid(e, inv._id)}>
-                        Bezahlt
+                    <div style={{ display: "flex", gap: "0.25rem" }}>
+                      {inv.status === "open" && (
+                        <button className="btn btn-sm" onClick={(e) => handleMarkPaid(e, inv._id)}>
+                          Bezahlt
+                        </button>
+                      )}
+                      <button className="btn btn-sm" onClick={(e) => handleDelete(e, inv._id, inv.number)} title="Loeschen">
+                        ×
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))
