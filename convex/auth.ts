@@ -242,7 +242,7 @@ export const sendMagicLinkEmail = internalAction({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || "Faktox <noreply@faktox.app>",
+        from: process.env.RESEND_FROM_EMAIL || "Faktox <update@faktox.online>",
         to: args.email,
         subject: "Dein Faktox Login-Link",
         html: `
