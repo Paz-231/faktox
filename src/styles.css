@@ -613,7 +613,6 @@ tbody tr:hover {
   .main {
     margin-left: 0;
     padding: 1rem;
-    padding-bottom: 4.5rem; /* space for bottom nav */
     width: 100%;
     flex: 1;
     min-width: 0;
@@ -748,7 +747,6 @@ tbody tr:hover {
   /* Main content minimal padding */
   .main {
     padding: 0.75rem;
-    padding-bottom: 4rem;
   }
 
   /* Modal: almost fullscreen */

@@ -153,20 +153,6 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
         {page === "settings" && <SettingsPage auth={auth} />}
       </main>
 
-      {/* Bottom Nav — Mobile */}
-      <nav className="bottom-nav">
-        {navItems.map((item) => (
-          <a
-            key={item.id}
-            className={page === item.id ? "active" : ""}
-            onClick={() => setPage(item.id)}
-          >
-            <span className="icon"><Icon name={item.icon} /></span>
-            {item.label}
-          </a>
-        ))}
-      </nav>
-
       {/* Upgrade Modal */}
       {showUpgrade && <UpgradeModal auth={auth} onClose={() => setShowUpgrade(false)} />}
     </div>
