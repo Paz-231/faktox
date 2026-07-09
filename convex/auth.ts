@@ -12,7 +12,7 @@ function generateToken(): string {
   for (let i = 0; i < 64; i++) {
     token += chars[Math.floor(Math.random() * chars.length)];
   }
-  return token;
+  return token + Date.now().toString(36);
 }
 
 // Token expiry: 15 minutes
@@ -55,7 +55,7 @@ export const requestMagicLink = mutation({
     });
 
     // Build magic link URL
-    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = process.env.FRONTEND_URL || "https://faktox.online";
     const magicLink = `${baseUrl}/auth/verify?token=${token}`;
 
     // Dev mode: no email provider configured — return the token directly
@@ -356,7 +356,7 @@ export const createCheckoutSession = action({
       return { error: "Price not configured" };
     }
 
-    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = process.env.FRONTEND_URL || "https://faktox.online";
 
     const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
@@ -404,7 +404,7 @@ export const createBillingPortal = action({
       return { error: "Stripe not configured" };
     }
 
-    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = process.env.FRONTEND_URL || "https://faktox.online";
 
     const resp = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
       method: "POST",
