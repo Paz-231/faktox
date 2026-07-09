@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { CreateInvoiceModal } from "./CreateInvoiceModal";
+import { AuftragDetail } from "./AuftragDetail";
 
 interface CustomerDetailProps {
   customerId: string;
@@ -27,6 +28,9 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showCreateAuftrag, setShowCreateAuftrag] = useState(false);
+  // Auftrag-Detail direkt aus den Dokumentlisten öffnen (Angebote und
+  // Rechnungen hängen immer an einem Auftrag — der Detail-Dialog zeigt sie)
+  const [openAuftragId, setOpenAuftragId] = useState<string | null>(null);
 
   const money = (v: number) => `€ ${(v || 0).toFixed(2).replace(".", ",")}`;
 
@@ -183,7 +187,12 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
                 <thead><tr><th>Nummer</th><th>Datum</th><th>Brutto</th><th>Status</th></tr></thead>
                 <tbody>
                   {angebots.map((a: any) => (
-                    <tr key={a._id}>
+                    <tr
+                      key={a._id}
+                      onClick={() => a.auftragId && setOpenAuftragId(a.auftragId)}
+                      title={a.auftragId ? "Zugehörigen Auftrag öffnen" : "Kein Auftrag verknüpft"}
+                      style={a.auftragId ? undefined : { cursor: "default", opacity: 0.7 }}
+                    >
                       <td style={{ fontWeight: 500 }}>{a.number}</td>
                       <td>{a.date}</td>
                       <td>{money(a.grossAmount)}</td>
@@ -205,7 +214,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
                 <thead><tr><th>Nummer</th><th>Datum</th><th>Brutto</th><th>Status</th><th>Rechnungen</th></tr></thead>
                 <tbody>
                   {auftrags.map((a: any) => (
-                    <tr key={a._id}>
+                    <tr key={a._id} onClick={() => setOpenAuftragId(a._id)} title="Auftrag öffnen">
                       <td style={{ fontWeight: 500 }}>{a.number}</td>
                       <td>{a.date}</td>
                       <td>{money(a.grossAmount)}</td>
@@ -228,7 +237,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
                 <thead><tr><th>Nummer</th><th>Datum</th><th>Typ</th><th>Brutto</th><th>Status</th></tr></thead>
                 <tbody>
                   {rechnungen.map((r: any) => (
-                    <tr key={r._id}>
+                    <tr key={r._id} onClick={() => r.auftragId && setOpenAuftragId(r.auftragId)} title="Rechnung im Auftrag öffnen">
                       <td style={{ fontWeight: 500 }}>{r.number}</td>
                       <td>{r.date}</td>
                       <td><span className="badge">{r.type}</span></td>
@@ -250,7 +259,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
                   <thead><tr><th>Nummer</th><th>Storno von</th><th>Brutto</th><th>Datum</th></tr></thead>
                   <tbody>
                     {stornos.map((s: any) => (
-                      <tr key={s._id}>
+                      <tr key={s._id} onClick={() => s.auftragId && setOpenAuftragId(s.auftragId)} title="Storno im Auftrag öffnen">
                         <td style={{ fontWeight: 500, color: "var(--danger)" }}>{s.stornoNumber || s.number}</td>
                         <td>{s.stornoOf || "—"}</td>
                         <td>{money(s.grossAmount)}</td>
@@ -272,6 +281,16 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
         </div>
       </div>
     </div>
+
+    {/* Auftrag-Detail aus den Dokumentlisten — als Geschwister-Overlay */}
+    {openAuftragId && (
+      <AuftragDetail
+        auftragId={openAuftragId}
+        userId={userId}
+        onClose={() => setOpenAuftragId(null)}
+        onRefresh={onRefresh}
+      />
+    )}
 
     {/* Auftrag mit vorausgefüllten Kundendaten erstellen — als Geschwister-
         Overlay, damit Klicks nicht in das Kunden-Overlay durchbubbeln */}
