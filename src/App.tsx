@@ -682,8 +682,7 @@ export default function App() {
               <a href="/legal/cookies">Cookie-Richtlinie</a>
             </div>
             <div className="footer-col">
-              <h4>Unternehmen</h4>
-              <p>maighty Labs<br />Patrick Gruber<br />Südtiroler Straße 565<br />8962 Gröbming<br />Österreich</p>
+              <h4>Kontakt</h4>
               <a href="https://maighty-labs.com" target="_blank" rel="noopener">maighty-labs.com</a>
               <a href="mailto:info@maighty-labs.com">info@maighty-labs.com</a>
             </div>
