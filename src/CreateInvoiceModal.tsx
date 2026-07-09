@@ -160,7 +160,7 @@ export function CreateInvoiceModal({ userId, onClose, onCreated, initialCustomer
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(640px, 100%)" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Neuer Auftrag</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>
@@ -248,9 +248,9 @@ export function CreateInvoiceModal({ userId, onClose, onCreated, initialCustomer
           </div>
 
           {/* Items */}
-          <h4 style={{ marginTop: "1rem", marginBottom: "0.75rem" }}>Positionen</h4>
+          <h4 className="responsive-hide-label" style={{ marginTop: "1rem", marginBottom: "0.75rem" }}>Positionen</h4>
           {items.map((item, idx) => (
-            <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 60px 1fr 100px 32px", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "end" }}>
+            <div key={idx} className="item-row" style={{ display: "grid", gridTemplateColumns: "2fr 60px 1fr 100px 32px", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "end" }}>
               <div>
                 {idx === 0 && <label className="label">Beschreibung</label>}
                 <input className="input" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Beratungsleistung" />

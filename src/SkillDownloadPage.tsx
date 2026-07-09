@@ -38,7 +38,7 @@ export function SkillDownloadPage({ token }: { token: string }) {
   if (error) {
     return (
       <div className="modal-overlay" onClick={() => window.location.hash = ""}>
-        <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
+        <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(400px, 100%)" }}>
           <div className="modal-header">
             <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Download</h2>
             <button className="btn btn-ghost btn-icon" onClick={() => window.location.hash = ""}>×</button>
@@ -60,7 +60,7 @@ export function SkillDownloadPage({ token }: { token: string }) {
 
   return (
     <div className="modal-overlay" onClick={() => window.location.hash = ""}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560, maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(560px, 100%)", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Skill Downloads</h2>
           <button className="btn btn-ghost btn-icon" onClick={() => window.location.hash = ""}>×</button>

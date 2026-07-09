@@ -839,7 +839,7 @@ function LoginModal({ initialEmail, onClose }: { initialEmail?: string; onClose:
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(400px, 100%)" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Faktox<span style={{ color: "var(--accent)" }}>.</span></h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>

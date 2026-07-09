@@ -87,7 +87,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
   return (
     <>
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720, maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(720px, 100%)", maxHeight: "90vh", overflowY: "auto" }}>
         {/* Header */}
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{customer.name}</h2>

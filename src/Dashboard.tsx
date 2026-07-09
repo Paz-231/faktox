@@ -613,7 +613,7 @@ function ManualIncomingModal({ userId, onClose }: { userId: any; onClose: () => 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(480px, 100%)" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Eingangsrechnung erfassen</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>

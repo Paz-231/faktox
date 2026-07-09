@@ -171,7 +171,7 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720, maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(720px, 100%)", maxHeight: "90vh", overflowY: "auto" }}>
         {/* Header */}
         <div className="modal-header">
           <div>
@@ -226,7 +226,7 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
 
           {/* Summary */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
-            <div style={{ minWidth: 200 }}>
+          <div style={{ minWidth: 200, maxWidth: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
                 <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Netto</span>
                 <span style={{ fontSize: "0.8125rem" }}>{money(auftrag.netAmount)}</span>
@@ -249,7 +249,7 @@ export function AuftragDetail({ auftragId, userId, onClose, onRefresh }: Auftrag
 
           {/* Auftrag Actions */}
           {auftrag.status === "draft" && (
-            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
               <button className="btn btn-primary" onClick={handleConfirm} disabled={loading === "confirm"}>
                 {loading === "confirm" ? "Bestätige..." : "· Auftrag bestätigen"}
               </button>
@@ -494,7 +494,7 @@ function SendDocumentModal({
 
   return (
     <div className="modal-overlay" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "min(480px, 100%)" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: "1.125rem", fontWeight: 600 }}>{target.label} {target.number} senden</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>
