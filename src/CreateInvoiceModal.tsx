@@ -2,10 +2,20 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 
+export interface InitialCustomer {
+  customerId: string;
+  name: string;
+  street: string;
+  city: string;
+  uid: string;
+}
+
 interface CreateInvoiceModalProps {
   userId: string;
   onClose: () => void;
   onCreated?: () => void;
+  /** Vorausgewählter Kunde (z.B. aus der Kundendetailseite) */
+  initialCustomer?: InitialCustomer;
 }
 
 interface InvoiceItem {
@@ -25,14 +35,30 @@ const TAX_MODES = [
 
 const UNITS = ["Stunden", "Stück", "Monate", "Pauschal", "Tag", "Quadratmeter"];
 
-export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoiceModalProps) {
+export function CreateInvoiceModal({ userId, onClose, onCreated, initialCustomer }: CreateInvoiceModalProps) {
   const [type, setType] = useState<"Honorarnote" | "Rechnung">("Rechnung");
   const [date, setDate] = useState(new Date().toLocaleDateString("de-AT"));
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [recipientStreet, setRecipientStreet] = useState("");
-  const [recipientCity, setRecipientCity] = useState("");
-  const [recipientUid, setRecipientUid] = useState("");
+  const [customerId, setCustomerId] = useState<string>(initialCustomer?.customerId || "");
+  const [recipientName, setRecipientName] = useState(initialCustomer?.name || "");
+  const [recipientStreet, setRecipientStreet] = useState(initialCustomer?.street || "");
+  const [recipientCity, setRecipientCity] = useState(initialCustomer?.city || "");
+  const [recipientUid, setRecipientUid] = useState(initialCustomer?.uid || "");
+
+  // Kundenstamm für die Schnellauswahl
+  const customers = useQuery(api.customers.list, { userId: userId as any }) ?? [];
+
+  const handleSelectCustomer = (id: string) => {
+    setCustomerId(id);
+    if (!id) return; // "manuell eingeben" — Felder unangetastet lassen
+    const c = customers.find((c: any) => c._id === id);
+    if (c) {
+      setRecipientName(c.name || "");
+      setRecipientStreet(c.street || "");
+      setRecipientCity(c.postalCityCountry || "");
+      setRecipientUid(c.uid || "");
+    }
+  };
   const [taxMode, setTaxMode] = useState("kleinunternehmer");
   const [paymentTerms, setPaymentTerms] = useState("Zahlbar ohne Abzug innerhalb von 7 Tagen nach Rechnungserhalt.");
   const [items, setItems] = useState<InvoiceItem[]>([
@@ -101,6 +127,7 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
         userId: userId as any,
         date,
         deliveryDate: deliveryDate || undefined,
+        customerId: (customerId || undefined) as any,
         recipientName,
         recipientStreet,
         recipientCity,
@@ -176,6 +203,31 @@ export function CreateInvoiceModal({ userId, onClose, onCreated }: CreateInvoice
 
           {/* Recipient */}
           <h4 style={{ marginTop: "1rem", marginBottom: "0.75rem" }}>Empfänger</h4>
+
+          {/* Bestehenden Kunden wählen — spart die Doppeleingabe */}
+          {customers.length > 0 && (
+            <div className="field-group">
+              <label className="label">Aus Kundenstamm wählen</label>
+              <select
+                className="select"
+                value={customerId}
+                onChange={(e) => handleSelectCustomer(e.target.value)}
+              >
+                <option value="">— Neuen Empfänger manuell eingeben —</option>
+                {customers.map((c: any) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}{c.postalCityCountry ? ` · ${c.postalCityCountry}` : ""}
+                  </option>
+                ))}
+              </select>
+              {customerId && (
+                <div style={{ fontSize: "0.6875rem", color: "var(--success)", marginTop: "0.375rem" }}>
+                  Kundendaten übernommen — der Auftrag wird mit diesem Kunden verknüpft.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="field-group">
             <label className="label">Name / Firma</label>
             <input className="input" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="Kunde GmbH" />

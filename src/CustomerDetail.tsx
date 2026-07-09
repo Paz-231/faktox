@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { CreateInvoiceModal } from "./CreateInvoiceModal";
 
 interface CustomerDetailProps {
   customerId: string;
@@ -25,6 +26,7 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [showCreateAuftrag, setShowCreateAuftrag] = useState(false);
 
   const money = (v: number) => `€ ${(v || 0).toFixed(2).replace(".", ",")}`;
 
@@ -79,12 +81,18 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
   const { angebots = [], auftrags = [], rechnungen = [], stornos = [] } = documents || {};
 
   return (
+    <>
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720, maxHeight: "90vh", overflowY: "auto" }}>
         {/* Header */}
         <div className="modal-header">
           <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{customer.name}</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <button className="btn btn-sm btn-primary" onClick={() => setShowCreateAuftrag(true)}>
+              + Auftrag erstellen
+            </button>
+            <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="modal-body">
@@ -258,8 +266,32 @@ export function CustomerDetail({ customerId, userId, onClose, onRefresh }: Custo
 
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Schließen</button>
+          <button className="btn btn-primary" onClick={() => setShowCreateAuftrag(true)}>
+            + Auftrag erstellen
+          </button>
         </div>
       </div>
     </div>
+
+    {/* Auftrag mit vorausgefüllten Kundendaten erstellen — als Geschwister-
+        Overlay, damit Klicks nicht in das Kunden-Overlay durchbubbeln */}
+    {showCreateAuftrag && (
+      <CreateInvoiceModal
+        userId={userId}
+        initialCustomer={{
+          customerId: customer._id,
+          name: customer.name,
+          street: customer.street || "",
+          city: customer.postalCityCountry || "",
+          uid: customer.uid || "",
+        }}
+        onClose={() => setShowCreateAuftrag(false)}
+        onCreated={() => {
+          setShowCreateAuftrag(false);
+          onRefresh();
+        }}
+      />
+    )}
+    </>
   );
 }
