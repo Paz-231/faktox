@@ -78,13 +78,22 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
         <div className="sidebar-logo" style={{ border: "none", margin: 0, padding: 0, fontSize: "1rem" }}>
           Faktox<span>.</span>
         </div>
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          style={{ fontSize: "0.75rem" }}
-        >
-          {theme === "dark" ? "●" : "○"}
-        </button>
+        <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            style={{ fontSize: "0.75rem" }}
+          >
+            {theme === "dark" ? "●" : "○"}
+          </button>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={onLogout}
+            style={{ padding: "0.375rem 0.5rem", fontSize: "0.6875rem" }}
+          >
+            Abmelden
+          </button>
+        </div>
       </div>
 
       {/* Sidebar — Desktop + Mobile slide-in */}
