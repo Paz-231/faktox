@@ -326,7 +326,7 @@ export default function App() {
                       <span>Nummer</span><span>Datum</span><span>Kunde</span><span>Betrag</span><span>Status</span>
                     </div>
                     <div className="mockup-table-row">
-                      <span className="num">RE-2026-000001</span><span>05.07.2026</span><span>Herbert Thaler</span><span className="amount">€ 900,00</span><span><span className="mockup-badge success">Bezahlt</span></span>
+                      <span className="num">RE-2026-000001</span><span>05.07.2026</span><span>Andrea Moser</span><span className="amount">€ 900,00</span><span><span className="mockup-badge success">Bezahlt</span></span>
                     </div>
                     <div className="mockup-table-row">
                       <span className="num">RE-2026-000002</span><span>08.07.2026</span><span>TechSupply GmbH</span><span className="amount">€ 1.500,00</span><span><span className="mockup-badge accent">Gesendet</span></span>
