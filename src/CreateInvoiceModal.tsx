@@ -216,10 +216,10 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="field-row">
-            <DatePicker value={date} onChange={setDate} label="Rechnungsdatum" />
-            <DatePicker value={deliveryDate} onChange={setDeliveryDate} label="Leistungsdatum" />
+          {/* Date — nur Auftragsdatum, Rechnungsdatum wird bei Rechnungsgenerierung vergeben */}
+          <div className="field-group">
+            <label className="label">Auftragsdatum</label>
+            <input className="input" value={date} onChange={(e) => setDate(e.target.value)} placeholder="DD.MM.YYYY" />
           </div>
 
           {/* Recipient */}
