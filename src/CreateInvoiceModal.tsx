@@ -188,6 +188,12 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
         </div>
 
         <div className="modal-body">
+          {prefillData && (
+            <div style={{ padding: "0.75rem", background: "var(--surface-2)", border: "1px solid var(--accent)", marginBottom: "1rem", fontSize: "0.75rem", color: "var(--accent)" }}>
+              KI-vorausgefüllt — bitte alle Daten prüfen und bei Bedarf anpassen.
+            </div>
+          )}
+
           {/* Flow Info */}
           <div style={{ padding: "0.75rem", background: "var(--surface-2)", border: "1px solid var(--border)", marginBottom: "1rem", fontSize: "0.75rem", color: "var(--fg-3)" }}>
             Der Auftrag ist die Basis — die Rechnung erstellst du danach mit einem Klick aus der Auftrags-Detailansicht (lückenloser Nummernkreis inklusive).

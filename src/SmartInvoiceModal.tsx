@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { CreateInvoiceModal, type InitialCustomer } from "./CreateInvoiceModal";
+
 type ScanResult = {
   recipient_name: string;
   recipient_street: string;
@@ -38,14 +39,14 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generateUploadUrl = useMutation(api.fileUpload.generateUploadUrl);
-  const scanOutgoing = useMutation(api.fileUpload.scanOutgoingFile) as any;
+  const scanOutgoing = useAction(api.fileUpload.scanOutgoingFile);
 
   // Voice state
   const [voiceText, setVoiceText] = useState("");
   const [recording, setRecording] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const parseVoice = useMutation(api.fileUpload.parseVoiceToInvoice) as any;
+  const parseVoice = useAction(api.fileUpload.parseVoiceToInvoice);
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -108,7 +109,11 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     recognition.onresult = (event: any) => {
       let finalText = "";
       for (let i = 0; i < event.results.length; i++) {
-        finalText += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalText += event.results[i][0].transcript;
+        } else {
+          finalText += event.results[i][0].transcript;
+        }
       }
       setVoiceText(finalText);
     };
@@ -150,6 +155,19 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
   };
 
   // ── Render ──
+
+  // Manual mode → render CreateInvoiceModal directly
+  if (mode === "manual") {
+    return (
+      <CreateInvoiceModal
+        userId={userId}
+        sessionToken={sessionToken}
+        onClose={onClose}
+        onCreated={onCreated}
+        initialCustomer={initialCustomer}
+      />
+    );
+  }
 
   // If scan result is ready, pass to CreateInvoiceModal as pre-filled data
   if (scanResult) {
@@ -228,7 +246,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
 
           {mode === "photo" && (
             <div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setMode("choice")} style={{ marginBottom: "1rem" }}>← Zurück</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setMode("choice"); setError(""); }} style={{ marginBottom: "1rem" }}>← Zurück</button>
 
               {scanning ? (
                 <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
@@ -273,7 +291,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
 
           {mode === "voice" && (
             <div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setMode("choice")} style={{ marginBottom: "1rem" }}>← Zurück</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setMode("choice"); setError(""); }} style={{ marginBottom: "1rem" }}>← Zurück</button>
 
               {scanning ? (
                 <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
@@ -327,24 +345,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
             </div>
           )}
         </div>
-
-        {mode === "manual" && null}
       </div>
     </div>
   );
-
-  // Manual mode → render CreateInvoiceModal directly
-  if (mode === "manual") {
-    return (
-      <CreateInvoiceModal
-        userId={userId}
-        sessionToken={sessionToken}
-        onClose={onClose}
-        onCreated={onCreated}
-        initialCustomer={initialCustomer}
-      />
-    );
-  }
-
-  return null;
 }
