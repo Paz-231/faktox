@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 
@@ -218,14 +218,8 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
 
           {/* Dates */}
           <div className="field-row">
-            <div className="field-group">
-              <label className="label">Rechnungsdatum</label>
-              <input className="input" value={date} onChange={(e) => setDate(e.target.value)} placeholder="DD.MM.YYYY" />
-            </div>
-            <div className="field-group">
-              <label className="label">Leistungsdatum</label>
-              <input className="input" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} placeholder="DD.MM.YYYY" />
-            </div>
+            <DatePicker value={date} onChange={setDate} label="Rechnungsdatum" />
+            <DatePicker value={deliveryDate} onChange={setDeliveryDate} label="Leistungsdatum" />
           </div>
 
           {/* Recipient */}
@@ -233,26 +227,14 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
 
           {/* Bestehenden Kunden wählen — spart die Doppeleingabe */}
           {customers.length > 0 && (
-            <div className="field-group">
-              <label className="label">Aus Kundenstamm wählen</label>
-              <select
-                className="select"
-                value={customerId}
-                onChange={(e) => handleSelectCustomer(e.target.value)}
-              >
-                <option value="">— Neuen Empfänger manuell eingeben —</option>
-                {customers.map((c: any) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}{c.postalCityCountry ? ` · ${c.postalCityCountry}` : ""}
-                  </option>
-                ))}
-              </select>
+            <>
+              <CustomerPicker customers={customers} value={customerId} onChange={handleSelectCustomer} />
               {customerId && (
-                <div style={{ fontSize: "0.6875rem", color: "var(--success)", marginTop: "0.375rem" }}>
+                <div style={{ fontSize: "0.6875rem", color: "var(--success)", marginTop: "0.375rem", marginBottom: "0.75rem" }}>
                   Kundendaten übernommen — der Auftrag wird mit diesem Kunden verknüpft.
                 </div>
               )}
-            </div>
+            </>
           )}
 
           <div className="field-group">
@@ -390,6 +372,225 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// DatePicker — Mini calendar picker im Faktox-Design
+// ═══════════════════════════════════════════════════════════
+
+const MONTHS_DE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const DAYS_DE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("de-AT");
+}
+
+function parseDate(s: string): Date | null {
+  const parts = s.split(".");
+  if (parts.length === 3) {
+    const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function DatePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const initial = parseDate(value) || new Date();
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = parseDate(value);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  // Monday = 0
+  let startWeekday = firstDay.getDay() - 1;
+  if (startWeekday < 0) startWeekday = 6;
+
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewYear, viewMonth, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const pick = (d: Date) => {
+    onChange(formatDate(d));
+    setOpen(false);
+  };
+
+  const isSameDay = (a: Date | null, b: Date | null) => {
+    if (!a || !b) return false;
+    return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  };
+
+  return (
+    <div className="field-group" ref={ref} style={{ position: "relative" }}>
+      <label className="label">{label}</label>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex", alignItems: "center", gap: "0.5rem",
+          padding: "0.625rem 0.75rem",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "0",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: "0.8125rem",
+          color: value ? "var(--fg)" : "var(--fg-4)",
+          minHeight: "44px",
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "var(--fg-3)" }}>
+          <rect x="2" y="3" width="12" height="11" rx="0" />
+          <path d="M2 6h12M5 1v3M11 1v3" />
+        </svg>
+        <span>{value || "DD.MM.YYYY"}</span>
+      </div>
+
+      {open && (
+        <div className="datepicker-popup">
+          <div className="datepicker-header">
+            <button className="datepicker-nav" onClick={prevMonth} type="button">{"<"}</button>
+            <span className="datepicker-title">{MONTHS_DE[viewMonth]} {viewYear}</span>
+            <button className="datepicker-nav" onClick={nextMonth} type="button">{">"}</button>
+          </div>
+          <div className="datepicker-grid">
+            {DAYS_DE.map((d) => (
+              <div key={d} className="datepicker-dow">{d}</div>
+            ))}
+            {cells.map((d, i) => (
+              <button
+                key={i}
+                className={`datepicker-day ${d ? "" : "empty"} ${isSameDay(d, selected) ? "selected" : ""} ${isSameDay(d, today) ? "today" : ""}`}
+                onClick={() => d && pick(d)}
+                disabled={!d}
+                type="button"
+              >
+                {d ? d.getDate() : ""}
+              </button>
+            ))}
+          </div>
+          <button className="datepicker-clear" onClick={() => { onChange(""); setOpen(false); }} type="button">
+            Datum entfernen
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// CustomerPicker — durchsuchbares Dropdown im Faktox-Design
+// ═══════════════════════════════════════════════════════════
+
+function CustomerPicker({ customers, value, onChange }: { customers: any[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = customers.find((c) => c._id === value);
+  const filtered = customers.filter((c) => {
+    if (!search.trim()) return true;
+    const s = search.toLowerCase();
+    return (c.name || "").toLowerCase().includes(s) ||
+           (c.postalCityCountry || "").toLowerCase().includes(s) ||
+           (c.email || "").toLowerCase().includes(s);
+  });
+
+  return (
+    <div className="field-group" ref={ref} style={{ position: "relative" }}>
+      <label className="label">Aus Kundenstamm wählen</label>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0.625rem 0.75rem",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: "0.8125rem",
+          minHeight: "44px",
+        }}
+      >
+        <span style={{ color: selected ? "var(--fg)" : "var(--fg-4)" }}>
+          {selected ? selected.name : "— Neuen Empfänger manuell eingeben —"}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" style={{ color: "var(--fg-3)", flexShrink: 0 }}>
+          <path d="M3 4.5 6 8l3-3.5" />
+        </svg>
+      </div>
+
+      {open && (
+        <div className="customer-picker-popup">
+          <input
+            type="text"
+            className="input customer-picker-search"
+            placeholder="Suchen..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+            style={{ borderRadius: 0, margin: 0, marginBottom: "0.375rem" }}
+          />
+          {filtered.length === 0 ? (
+            <div className="customer-picker-empty">Keine Kunden gefunden</div>
+          ) : (
+            filtered.map((c) => (
+              <button
+                key={c._id}
+                className={`customer-picker-item ${c._id === value ? "selected" : ""}`}
+                onClick={() => { onChange(c._id); setOpen(false); setSearch(""); }}
+                type="button"
+              >
+                <div className="customer-picker-name">{c.name}</div>
+                {c.postalCityCountry && (
+                  <div className="customer-picker-meta">{c.postalCityCountry}</div>
+                )}
+              </button>
+            ))
+          )}
+          <button
+            className="customer-picker-manual"
+            onClick={() => { onChange(""); setOpen(false); setSearch(""); }}
+            type="button"
+          >
+            + Neuen Empfänger manuell eingeben
+          </button>
+        </div>
+      )}
     </div>
   );
 }
