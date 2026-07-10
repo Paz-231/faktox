@@ -361,6 +361,11 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
                         {recording ? "Aufnahme läuft — Klick zum Stoppen" : "Diktieren starten"}
                       </button>
                     )}
+                    {!voiceSupported && (
+                      <p style={{ fontSize: "0.75rem", color: "var(--fg-3)", marginBottom: "0.75rem", textAlign: "center" }}>
+                        Spracherkennung nicht verfügbar in diesem Browser. Tippe den Text ein.
+                      </p>
+                    )}
                     <textarea
                       className="input"
                       value={voiceText}
@@ -368,6 +373,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
                       placeholder={"z.B. Rechnung an Müller GmbH in Wien, 10 Stunden Beratung à 85 Euro, Zahlbar innerhalb 14 Tagen..."}
                       rows={5}
                       style={{ width: "100%", resize: "vertical", fontFamily: "inherit", borderRadius: "0.5rem", minHeight: "120px" }}
+                      autoFocus={!voiceSupported}
                     />
                   </div>
                   <button
@@ -381,7 +387,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
                   <p style={{ fontSize: "0.6875rem", color: "var(--fg-4)", marginTop: "0.75rem", textAlign: "center" }}>
                     {voiceSupported
                       ? "Diktiere oder tippe — die KI erkennt Empfänger, Positionen, Beträge und Steuerstatus."
-                      : "Spracherkennung nicht verfügbar in diesem Browser. Tippe den Text ein."}
+                      : "Beschreibe die Rechnung in Textform — die KI erkennt Empfänger, Positionen, Beträge und Steuerstatus."}
                   </p>
                 </>
               )}

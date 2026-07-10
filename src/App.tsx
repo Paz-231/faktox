@@ -792,16 +792,30 @@ function SignupCta({ ctaLabel, onDevLogin }: { ctaLabel: string; onDevLogin: (em
 // ═══════════════════════════════════════════════════════════
 function MagicLinkVerify({ token }: { token: string }) {
   const [error, setError] = useState("");
+  const [inAppBrowser, setInAppBrowser] = useState(false);
   const completeLogin = useMutation(api.auth.completeLogin);
 
   useEffect(() => {
+    // Detect in-app browser (Gmail, Instagram, Facebook, etc.)
+    const ua = navigator.userAgent.toLowerCase();
+    const isInApp = ua.includes("gmail") || ua.includes("inbox") ||
+      (ua.includes("instagram") && !ua.includes("chrome")) ||
+      (ua.includes("fban") && !ua.includes("chrome")) ||
+      (ua.includes("line") && !ua.includes("chrome")) ||
+      ua.includes("wv") || // Android WebView
+      (navigator.standalone === false && !ua.includes("safari") && !ua.includes("chrome") && !ua.includes("firefox") && !ua.includes("edge"));
+
+    if (isInApp) {
+      setInAppBrowser(true);
+      return; // Don't auto-login in in-app browser — session won't persist
+    }
+
     let cancelled = false;
     (async () => {
       try {
         const result = await completeLogin({ token });
         if (cancelled) return;
         localStorage.setItem("faktox_session", result.sessionToken);
-        // Clean URL, then reload into the dashboard
         window.history.replaceState({}, "", "/");
         window.location.reload();
       } catch (err: any) {
@@ -812,11 +826,54 @@ function MagicLinkVerify({ token }: { token: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  const currentUrl = window.location.href;
+
   return (
     <div className="auth-page">
       <div className="auth-box" style={{ textAlign: "center" }}>
         <h1>Faktox<span>.</span></h1>
-        {error ? (
+
+        {inAppBrowser && (
+          <>
+            <p style={{ marginTop: "1rem", fontSize: "0.9375rem", color: "var(--fg-2)" }}>
+              Du öffnest diesen Link in einem App-internen Browser.
+            </p>
+            <p style={{ marginTop: "0.5rem", fontSize: "0.8125rem", color: "var(--fg-3)" }}>
+              Damit dein Login gespeichert wird, öffne den Link in deinem Standard-Browser (Safari oder Chrome).
+            </p>
+            <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  // Try to open in default browser — works on most platforms
+                  window.location.href = currentUrl;
+                }}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                In Browser öffnen
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  navigator.clipboard?.writeText(currentUrl).then(() => {
+                    alert("Link kopiert. Öffne deinen Browser und füge ihn ein.");
+                  }).catch(() => {
+                    // Fallback — show the URL
+                    prompt("Kopiere diesen Link:", currentUrl);
+                  });
+                }}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Link kopieren
+              </button>
+            </div>
+            <p style={{ marginTop: "1.5rem", fontSize: "0.75rem", color: "var(--fg-4)" }}>
+              Tipp: Halte den Login-Button in der Email gedrückt und wähle "In Safari öffnen" oder "In Chrome öffnen".
+            </p>
+          </>
+        )}
+
+        {!inAppBrowser && error && (
           <>
             <p style={{ color: "var(--danger)", marginTop: "1rem" }}>{error}</p>
             <button
@@ -827,7 +884,9 @@ function MagicLinkVerify({ token }: { token: string }) {
               Zurück zur Startseite
             </button>
           </>
-        ) : (
+        )}
+
+        {!inAppBrowser && !error && (
           <p style={{ marginTop: "1rem" }}>Einloggen...</p>
         )}
       </div>

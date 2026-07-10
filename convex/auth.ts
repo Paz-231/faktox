@@ -256,6 +256,11 @@ export const sendMagicLinkEmail = internalAction({
                 Einloggen →
               </a>
             </p>
+            <p style="color: #999; font-size: 0.85rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee;">
+              <strong>Tipp:</strong> Öffne diesen Link in deinem Standard-Browser (Safari, Chrome), nicht im Gmail-App-Browser.<br>
+              Falls der Button nicht funktioniert, kopiere diesen Link und öffne ihn manuell:<br>
+              <span style="font-size: 0.75rem; color: #aaa; word-break: break-all;">${args.magicLink}</span>
+            </p>
             <p style="color: #999; font-size: 0.85rem;">
               Der Link ist 15 Minuten gültig.<br>
               Wenn du diesen Login nicht angefordert hast, ignoriere diese Email.
