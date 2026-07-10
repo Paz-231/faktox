@@ -238,20 +238,22 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
                     textAlign: "left",
                     background: "var(--surface)",
                     border: "1px solid var(--border)",
+                    color: "var(--fg)",
                     borderRadius: "0.5rem",
                     cursor: "pointer",
                     transition: "border-color 0.15s ease, background 0.15s ease",
                     minHeight: "72px",
+                    fontFamily: "inherit",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}
                 >
                   <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>
                     <ModeIcon name={opt.icon} />
                   </span>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.title}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--fg-4)", marginTop: "0.125rem" }}>{opt.desc}</div>
+                    <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--fg)" }}>{opt.title}</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--fg-3)", marginTop: "0.125rem" }}>{opt.desc}</div>
                   </div>
                 </button>
               ))}
