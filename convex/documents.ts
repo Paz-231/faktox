@@ -107,6 +107,7 @@ function toPdfInput(kind: Kind, doc: any, profile: any): { pdfDoc: PdfDocument; 
     recipientUid: doc.recipientUid || undefined,
     taxRate: doc.taxRate || 0,
     taxNote: doc.taxNote || undefined,
+    taxBreakdown: doc.taxBreakdown || undefined,
     netAmount: doc.netAmount,
     vatAmount: doc.vatAmount,
     grossAmount: doc.grossAmount,

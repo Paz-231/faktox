@@ -27,6 +27,14 @@ export interface PdfItem {
   unit: string;
   unitPrice: number;
   total: number;
+  taxRate?: number;
+}
+
+export interface TaxBreakdownEntry {
+  taxRate: number;
+  netAmount: number;
+  vatAmount: number;
+  grossAmount: number;
 }
 
 export interface PdfDocument {
@@ -43,6 +51,7 @@ export interface PdfDocument {
   recipientUid?: string;
   taxRate: number;
   taxNote?: string;
+  taxBreakdown?: TaxBreakdownEntry[];
   netAmount: number;
   vatAmount: number;
   grossAmount: number;
@@ -180,12 +189,13 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
 
   // ── Positionstabelle ──
   const cols = [
-    { label: "Pos.", w: 34, align: "center" as const },
-    { label: "Bezeichnung", w: usable - 34 - 50 - 72 - 84 - 84, align: "left" as const },
-    { label: "Menge", w: 50, align: "right" as const },
-    { label: "Einheit", w: 72, align: "left" as const },
-    { label: "Preis/Einh.", w: 84, align: "right" as const },
-    { label: "Gesamt", w: 84, align: "right" as const },
+    { label: "Pos.", w: 30, align: "center" as const },
+    { label: "Bezeichnung", w: usable - 30 - 40 - 60 - 60 - 70 - 70 - 70, align: "left" as const },
+    { label: "Menge", w: 40, align: "right" as const },
+    { label: "Einheit", w: 60, align: "left" as const },
+    { label: "USt", w: 60, align: "center" as const },
+    { label: "Preis/Einh.", w: 70, align: "right" as const },
+    { label: "Gesamt", w: 70, align: "right" as const },
   ];
   const headerH = 20;
 
@@ -234,18 +244,25 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
     // Einheit
     text(page, item.unit || "", cx + 6, baseline, font, 8.9);
     cx += cols[3].w;
+    // USt
+    {
+      const s = `${(item.taxRate || 0).toFixed(0)}%`;
+      const wdt = font.widthOfTextAtSize(s, 8.9);
+      text(page, s, cx + (cols[4].w - wdt) / 2, baseline, font, 8.9);
+      cx += cols[4].w;
+    }
     // Preis
-    textRight(page, money(item.unitPrice), cx + cols[4].w - 6, baseline, font, 8.9);
-    cx += cols[4].w;
+    textRight(page, money(item.unitPrice), cx + cols[5].w - 6, baseline, font, 8.9);
+    cx += cols[5].w;
     // Gesamt
-    textRight(page, money(item.total), cx + cols[5].w - 6, baseline, font, 8.9);
+    textRight(page, money(item.total), cx + cols[6].w - 6, baseline, font, 8.9);
 
     y -= rowH;
     page.drawLine({ start: { x: LEFT, y: y + 2 }, end: { x: rightX, y: y + 2 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
   }
   y -= 18;
 
-  // ── Summen ──
+  // ── Summen (mit pro-Steuersatz Breakdown) ──
   ensureSpace(80);
   const sumRow = (label: string, value: string, isBold = false) => {
     textRight(page, label, rightX - 130, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
@@ -253,9 +270,23 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
     y -= 17;
   };
   sumRow("Gesamt netto", money(doc.netAmount));
-  if (doc.taxRate > 0 && doc.vatAmount > 0) {
-    sumRow(`Umsatzsteuer (${doc.taxRate.toFixed(0)}%)`, money(doc.vatAmount));
+
+  // Per-rate breakdown
+  if (doc.taxBreakdown && doc.taxBreakdown.length > 0) {
+    for (const b of doc.taxBreakdown) {
+      if (b.taxRate > 0 && b.vatAmount > 0) {
+        sumRow(`USt ${b.taxRate.toFixed(0)}% (Netto ${money(b.netAmount)})`, money(b.vatAmount));
+      } else if (b.taxRate === 0 && b.netAmount > 0) {
+        sumRow(`Steuerfrei (0%) — Netto ${money(b.netAmount)}`, "€ 0,00");
+      }
+    }
+  } else {
+    // Fallback für alte Dokumente ohne taxBreakdown
+    if (doc.taxRate > 0 && doc.vatAmount > 0) {
+      sumRow(`Umsatzsteuer (${doc.taxRate.toFixed(0)}%)`, money(doc.vatAmount));
+    }
   }
+
   page.drawLine({ start: { x: rightX - 200, y: y + 10 }, end: { x: rightX, y: y + 10 }, thickness: 0.5, color: black });
   y -= 4;
   sumRow("Gesamtbetrag", money(doc.grossAmount), true);

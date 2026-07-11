@@ -247,6 +247,7 @@ export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefr
                   <th>Beschreibung</th>
                   <th>Menge</th>
                   <th>Einheit</th>
+                  <th>USt</th>
                   <th>Preis/Einh.</th>
                   <th>Gesamt</th>
                 </tr>
@@ -258,6 +259,7 @@ export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefr
                     <td>{item.description}</td>
                     <td>{item.qty}</td>
                     <td>{item.unit}</td>
+                    <td>{(item.taxRate || 0).toFixed(0)}%</td>
                     <td>{money(item.unitPrice)}</td>
                     <td style={{ fontWeight: 500 }}>{money(item.total)}</td>
                   </tr>
@@ -266,21 +268,39 @@ export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefr
             </table>
           </div>
 
-          {/* Summary */}
+          {/* Summary — per-rate tax breakdown */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
-          <div style={{ minWidth: 200, maxWidth: "100%" }}>
+          <div style={{ minWidth: 240, maxWidth: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
-                <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Netto</span>
+                <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Gesamt netto</span>
                 <span style={{ fontSize: "0.8125rem" }}>{money(auftrag.netAmount)}</span>
               </div>
-              {auftrag.vatAmount > 0 && (
+              {(auftrag as any).taxBreakdown?.length > 0 ? (
+                (auftrag as any).taxBreakdown.map((b: any) => (
+                  b.taxRate > 0 ? (
+                    <div key={b.taxRate} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
+                      <span style={{ color: "var(--fg-3)", fontSize: "0.75rem" }}>
+                        USt ({b.taxRate.toFixed(0)}%) — Netto {money(b.netAmount)}
+                      </span>
+                      <span style={{ fontSize: "0.75rem" }}>{money(b.vatAmount)}</span>
+                    </div>
+                  ) : b.netAmount > 0 ? (
+                    <div key={b.taxRate} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
+                      <span style={{ color: "var(--fg-3)", fontSize: "0.75rem" }}>
+                        Steuerfrei (0%) — Netto {money(b.netAmount)}
+                      </span>
+                      <span style={{ fontSize: "0.75rem" }}>€ 0,00</span>
+                    </div>
+                  ) : null
+                ))
+              ) : auftrag.vatAmount > 0 ? (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
                   <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>USt ({auftrag.taxRate}%)</span>
                   <span style={{ fontSize: "0.8125rem" }}>{money(auftrag.vatAmount)}</span>
                 </div>
-              )}
+              ) : null}
               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid var(--border)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
-                <span>Gesamt</span>
+                <span>Gesamtbetrag</span>
                 <span style={{ color: "var(--accent)" }}>{money(auftrag.grossAmount)}</span>
               </div>
               <div style={{ fontSize: "0.6875rem", color: "var(--fg-3)", marginTop: "0.5rem" }}>

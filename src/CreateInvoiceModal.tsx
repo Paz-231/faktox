@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SelectPicker } from "./SelectPicker";
+import { TAX_RATE_SELECT_OPTIONS, TAX_RATE_MAP, computeTaxBreakdown, computeTotals, taxRateLabel } from "./taxRates";
 
 export interface InitialCustomer {
   customerId: string;
@@ -40,6 +41,7 @@ interface InvoiceItem {
   qty: number;
   unit: string;
   unitPrice: number;
+  taxRate: number; // pro-Position Steuersatz
 }
 
 const TAX_MODES = [
@@ -84,8 +86,8 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
   const [paymentTerms, setPaymentTerms] = useState(prefillData?.payment_terms || "Zahlbar ohne Abzug innerhalb von 7 Tagen nach Rechnungserhalt.");
   const [items, setItems] = useState<InvoiceItem[]>(
     prefillData?.items?.length
-      ? prefillData.items.map(i => ({ description: i.description, qty: i.qty, unit: i.unit, unitPrice: i.unit_price }))
-      : [{ description: "", qty: 1, unit: "Stunden", unitPrice: 0 }]
+      ? prefillData.items.map(i => ({ description: i.description, qty: i.qty, unit: i.unit, unitPrice: i.unit_price, taxRate: i.vat_rate || 0 }))
+      : [{ description: "", qty: 1, unit: "Stunden", unitPrice: 0, taxRate: 0 }]
   );
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -94,7 +96,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
   const createAuftrag = useMutation(api.auftrags.create);
 
   const addItem = () => {
-    setItems([...items, { description: "", qty: 1, unit: "Stunden", unitPrice: 0 }]);
+    setItems([...items, { description: "", qty: 1, unit: "Stunden", unitPrice: 0, taxRate: items[0]?.taxRate || 0 }]);
   };
 
   const removeItem = (idx: number) => {
@@ -107,10 +109,13 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
     setItems(updated);
   };
 
-  const taxRate = TAX_MODES.find((m) => m.value === taxMode)?.rate ?? 0;
-  const netTotal = items.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
-  const vatAmount = taxRate > 0 ? (netTotal * taxRate) / 100 : 0;
-  const grossTotal = netTotal + vatAmount;
+  // Berechnung mit pro-Position Steuersätzen
+  const itemsForCalc = items.map((i) => ({ total: i.qty * i.unitPrice, taxRate: i.taxRate }));
+  const totals = computeTotals(itemsForCalc);
+  const taxBreakdown = computeTaxBreakdown(itemsForCalc);
+  const netTotal = totals.netAmount;
+  const vatAmount = totals.vatAmount;
+  const grossTotal = totals.grossAmount;
 
   const handleCreate = async () => {
     setError("");
@@ -132,7 +137,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
         befreit: "Von der Umsatzsteuer befreit.",
       };
 
-      // Build items with positions
+      // Build items with positions + per-item tax rate
       const invoiceItems = items.map((item, idx) => ({
         pos: idx + 1,
         description: item.description,
@@ -140,6 +145,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
         unit: item.unit,
         unitPrice: item.unitPrice,
         total: item.qty * item.unitPrice,
+        taxRate: item.taxRate,
       }));
 
       // Step 1: Create Auftrag (draft status — no rechnung yet).
@@ -265,7 +271,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
           {/* Desktop: Grid Table */}
           <div className="item-row-desktop">
             {items.map((item, idx) => (
-              <div key={idx} className="item-row" style={{ display: "grid", gridTemplateColumns: "2fr 60px 1fr 100px 32px", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "end" }}>
+              <div key={idx} className="item-row" style={{ display: "grid", gridTemplateColumns: "2fr 50px 1fr 90px 80px 100px 28px", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "end" }}>
                 <div>
                   {idx === 0 && <label className="label">Beschreibung</label>}
                   <input className="input" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Beratungsleistung" />
@@ -283,9 +289,24 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
                     style={{ marginBottom: 0 }}
                   />
                 </div>
+                <div style={{ position: "relative" }}>
+                  {idx === 0 && <label className="label">USt-Satz</label>}
+                  <SelectPicker
+                    value={String(item.taxRate)}
+                    onChange={(v) => updateItem(idx, "taxRate" as any, Number(v))}
+                    options={TAX_RATE_SELECT_OPTIONS}
+                    style={{ marginBottom: 0 }}
+                  />
+                </div>
                 <div>
                   {idx === 0 && <label className="label">Preis/Einh.</label>}
                   <input className="input" type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", e.target.value)} />
+                </div>
+                <div>
+                  {idx === 0 && <label className="label">Gesamt</label>}
+                  <div style={{ padding: "0.625rem 0.75rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--fg)", minHeight: "44px", display: "flex", alignItems: "center" }}>
+                    {money(item.qty * item.unitPrice)}
+                  </div>
                 </div>
                 <div>
                   {items.length > 1 && (
@@ -325,6 +346,15 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
                     />
                   </div>
                 </div>
+                <div className="item-card-row" style={{ position: "relative" }}>
+                  <SelectPicker
+                    value={String(item.taxRate)}
+                    onChange={(v) => updateItem(idx, "taxRate" as any, Number(v))}
+                    options={TAX_RATE_SELECT_OPTIONS}
+                    label="USt-Satz"
+                    style={{ marginBottom: 0 }}
+                  />
+                </div>
                 <div className="field-group">
                   <label className="label">Preis/Einh. (EUR)</label>
                   <input className="input" type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", e.target.value)} />
@@ -336,30 +366,44 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
           <button className="btn btn-sm" onClick={addItem} style={{ marginTop: "0.5rem" }}>+ Position</button>
 
           {/* Tax */}
+          {/* Tax mode — steuerrechtlicher Status (bestimmt taxNote, nicht pro-Position rate) */}
           <div className="field-group" style={{ marginTop: "1rem", position: "relative" }}>
-            <label className="label">Steuerstatus</label>
+            <label className="label">Steuerrechtlicher Status</label>
             <SelectPicker
               value={taxMode}
               onChange={setTaxMode}
               options={TAX_MODE_OPTIONS}
               style={{ marginBottom: 0 }}
             />
+            <div style={{ fontSize: "0.6875rem", color: "var(--fg-3)", marginTop: "0.375rem" }}>
+              Der Steuersatz wird pro Position ausgewählt. Dieser Status bestimmt den Steuerhinweis auf der Rechnung.
+            </div>
           </div>
 
-          {/* Summary */}
+          {/* Summary — per-rate tax breakdown */}
           <div style={{ marginTop: "1rem", padding: "1rem", background: "var(--surface-2)", border: "1px solid var(--border)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-              <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Netto</span>
+              <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Gesamt netto</span>
               <span style={{ fontSize: "0.8125rem" }}>{money(netTotal)}</span>
             </div>
-            {taxRate > 0 && (
+            {taxBreakdown.filter((b) => b.taxRate > 0).map((b) => (
+              <div key={b.taxRate} style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                <span style={{ color: "var(--fg-3)", fontSize: "0.75rem" }}>
+                  USt ({b.taxRate.toFixed(0)}%) — {money(b.netAmount)} netto
+                </span>
+                <span style={{ fontSize: "0.75rem" }}>{money(b.vatAmount)}</span>
+              </div>
+            ))}
+            {taxBreakdown.some((b) => b.taxRate === 0) && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>USt ({taxRate}%)</span>
-                <span style={{ fontSize: "0.8125rem" }}>{money(vatAmount)}</span>
+                <span style={{ color: "var(--fg-3)", fontSize: "0.75rem" }}>
+                  Steuerfrei (0%) — {money(taxBreakdown.find((b) => b.taxRate === 0)!.netAmount)} netto
+                </span>
+                <span style={{ fontSize: "0.75rem" }}>€ 0,00</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, borderTop: "1px solid var(--border)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
-              <span>Gesamt</span>
+              <span>Gesamtbetrag</span>
               <span style={{ color: "var(--accent)" }}>{money(grossTotal)}</span>
             </div>
           </div>

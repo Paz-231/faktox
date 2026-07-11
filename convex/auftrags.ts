@@ -7,6 +7,46 @@ import { getAuthUserId } from "./authHelper";
 // Aufträge API — Pflicht-Dokument vor jeder Rechnung
 // ═══════════════════════════════════════════════════════════
 
+// ── Steuer-Breakdown: gruppiert nach Steuersatz ─────────────
+interface TaxBreakdownEntry {
+  taxRate: number;
+  netAmount: number;
+  vatAmount: number;
+  grossAmount: number;
+}
+
+function computeTaxBreakdown(items: { total: number; taxRate: number }[]): TaxBreakdownEntry[] {
+  const groups: Record<number, { netAmount: number; vatAmount: number; grossAmount: number }> = {};
+  for (const item of items) {
+    const rate = item.taxRate || 0;
+    if (!groups[rate]) groups[rate] = { netAmount: 0, vatAmount: 0, grossAmount: 0 };
+    groups[rate].netAmount += item.total;
+    const vat = rate > 0 ? (item.total * rate) / 100 : 0;
+    groups[rate].vatAmount += vat;
+    groups[rate].grossAmount += item.total + vat;
+  }
+  return Object.entries(groups)
+    .map(([rate, v]) => ({
+      taxRate: Number(rate),
+      netAmount: v.netAmount,
+      vatAmount: v.vatAmount,
+      grossAmount: v.grossAmount,
+    }))
+    .sort((a, b) => b.taxRate - a.taxRate);
+}
+
+// Default tax rate based on taxMode (used when item.taxRate not set — backward compat)
+function defaultRateForMode(taxMode: string): number {
+  const map: Record<string, number> = {
+    kleinunternehmer: 0,
+    ust_standard: 20,
+    ust_ermaessigt: 10,
+    reverse_charge: 0,
+    befreit: 0,
+  };
+  return map[taxMode] ?? 0;
+}
+
 // Atomically pull the next number from the per-user/per-year sequence.
 // Runs inside the calling mutation's transaction — lückenlos garantiert.
 async function nextSequenceNumber(
@@ -123,6 +163,7 @@ export const create = mutation({
       unit: v.string(),
       unitPrice: v.number(),
       total: v.number(),
+      taxRate: v.optional(v.number()),
     })),
     paymentTerms: v.string(),
     footer: v.optional(v.string()),
@@ -152,11 +193,34 @@ export const create = mutation({
     const number =
       args.number ?? (await nextSequenceNumber(ctx, args.userId, new Date().getFullYear(), "AU"));
 
+    // Compute per-rate tax breakdown
+    const defaultRate = defaultRateForMode(args.taxMode);
+    const itemsWithTax = args.items.map((item) => ({
+      ...item,
+      taxRate: item.taxRate ?? defaultRate,
+    }));
+    const taxBreakdown = computeTaxBreakdown(itemsWithTax);
+
+    // Recompute totals from per-item rates (authoritative)
+    let netAmount = 0;
+    let vatAmount = 0;
+    for (const item of itemsWithTax) {
+      netAmount += item.total;
+      const rate = item.taxRate || 0;
+      if (rate > 0) vatAmount += (item.total * rate) / 100;
+    }
+    const grossAmount = netAmount + vatAmount;
+
     const { sessionToken, ...rest } = args;
     const auftragId = await ctx.db.insert("auftrags", {
       ...rest,
       userId,
       number,
+      items: itemsWithTax,
+      taxBreakdown,
+      netAmount,
+      vatAmount,
+      grossAmount,
       status: "draft",
       rechnungIds: [],
       createdAt: now,
@@ -422,12 +486,13 @@ export const createAngebotFromAuftrag = mutation({
       taxMode: auftrag.taxMode,
       taxRate: auftrag.taxRate,
       taxNote: auftrag.taxNote,
+      taxBreakdown: auftrag.taxBreakdown,
       netAmount: auftrag.netAmount,
       vatAmount: auftrag.vatAmount,
       grossAmount: auftrag.grossAmount,
       items: auftrag.items,
       status: "draft",
-      auftragId: args.auftragId, // linked back to auftrag
+      auftragId: args.auftragId,
       createdAt: now,
       updatedAt: now,
     });
@@ -558,6 +623,7 @@ export const createRechnungFromAuftrag = mutation({
       taxMode: auftrag.taxMode,
       taxRate: auftrag.taxRate,
       taxNote: auftrag.taxNote,
+      taxBreakdown: auftrag.taxBreakdown,
       netAmount: auftrag.netAmount,
       vatAmount: auftrag.vatAmount,
       grossAmount: auftrag.grossAmount,

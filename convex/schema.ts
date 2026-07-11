@@ -99,6 +99,13 @@ export default defineSchema({
     taxMode: v.string(),
     taxRate: v.number(),
     taxNote: v.optional(v.string()),
+    // Steuer-Breakdown (pro Steuersatz)
+    taxBreakdown: v.optional(v.array(v.object({
+      taxRate: v.number(),
+      netAmount: v.number(),
+      vatAmount: v.number(),
+      grossAmount: v.number(),
+    }))),
     // Beträge
     netAmount: v.number(),
     vatAmount: v.number(),
@@ -111,6 +118,7 @@ export default defineSchema({
       unit: v.string(),
       unitPrice: v.number(),
       total: v.number(),
+      taxRate: v.optional(v.number()), // pro-Position Steuersatz (ab Jul 2026)
     })),
     // Status: draft → sent → confirmed → (generiert Auftrag) | discarded
     status: v.string(),
@@ -146,6 +154,13 @@ export default defineSchema({
     taxMode: v.string(),
     taxRate: v.number(),
     taxNote: v.optional(v.string()),
+    // Steuer-Breakdown (pro Steuersatz)
+    taxBreakdown: v.optional(v.array(v.object({
+      taxRate: v.number(),
+      netAmount: v.number(),
+      vatAmount: v.number(),
+      grossAmount: v.number(),
+    }))),
     // Beträge
     netAmount: v.number(),
     vatAmount: v.number(),
@@ -158,6 +173,7 @@ export default defineSchema({
       unit: v.string(),
       unitPrice: v.number(),
       total: v.number(),
+      taxRate: v.optional(v.number()), // pro-Position Steuersatz (ab Jul 2026)
     })),
     // Status: draft → confirmed → (Rechnung möglich) | discarded
     status: v.string(),
@@ -200,6 +216,13 @@ export default defineSchema({
     taxMode: v.string(), // kleinunternehmer, ust_standard, etc.
     taxRate: v.number(), // 0, 20, 19
     taxNote: v.optional(v.string()),
+    // Steuer-Breakdown (pro Steuersatz)
+    taxBreakdown: v.optional(v.array(v.object({
+      taxRate: v.number(),
+      netAmount: v.number(),
+      vatAmount: v.number(),
+      grossAmount: v.number(),
+    }))),
     // Beträge
     netAmount: v.number(),
     vatAmount: v.number(),
@@ -212,6 +235,7 @@ export default defineSchema({
       unit: v.string(),
       unitPrice: v.number(),
       total: v.number(),
+      taxRate: v.optional(v.number()), // pro-Position Steuersatz (ab Jul 2026)
     })),
     // Status
     // Status: final (immutable), paid, storno, overdue
