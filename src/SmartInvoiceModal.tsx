@@ -147,67 +147,78 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
       try { recognitionRef.current.abort(); } catch {}
       recognitionRef.current = null;
     }
-    const recognition = new SR();
-    recognition.lang = "de-AT";
-    recognition.continuous = true;
-    recognition.interimResults = true;
 
-    // Accumulated FINAL text across all restarts.
-    // Interim text is transient and replaced each event.
+    // Accumulated final text across all recognition sessions.
+    // With continuous=false, each session produces ONE final result.
+    // On auto-restart, the new session has a fresh event.results — no duplication.
     let finalText = voiceText || "";
 
-    recognition.onresult = (event: any) => {
-      // event.resultIndex = first changed result since last event.
-      // Only process NEW results to avoid duplicating text on Chrome auto-restart.
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          // Append final results to accumulated text
-          let transcript = result[0].transcript;
-          if (finalText && !finalText.endsWith(" ")) {
-            finalText += " ";
+    const createRecognition = () => {
+      const recognition = new SR();
+      recognition.lang = "de-AT";
+      recognition.continuous = false; // One result per session, then onend → restart
+      recognition.interimResults = true;
+
+      recognition.onresult = (event: any) => {
+        // Process only new results (from resultIndex onwards)
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            const transcript = result[0].transcript.trim();
+            if (transcript) {
+              finalText = finalText ? finalText + " " + transcript : transcript;
+            }
           }
-          finalText += transcript;
+        }
+        // Build display text: accumulated finals + current interim
+        let interim = "";
+        for (let i = 0; i < event.results.length; i++) {
+          if (!event.results[i].isFinal) {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        setVoiceText((finalText + (interim ? " " + interim : "")).trim());
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          setError("Mikrofon-Zugriff verweigert. Prüfe die Browser-Berechtigung (URL-Leiste → Sicherheit → Mikrofon erlauben) oder tippe den Text direkt ein.");
+          shouldRecordRef.current = false;
+        } else if (event.error === "no-speech") {
+          // Normal — Chrome stopped after silence, auto-restart will continue
+        } else if (event.error === "network") {
+          setError("Netzwerkfehler bei der Spracherkennung. Tippe den Text ein.");
+          shouldRecordRef.current = false;
+        } else if (event.error === "aborted") {
+          // User clicked stop — normal
         } else {
-          interim += result[0].transcript;
+          setError(`Spracherkennung: ${event.error}`);
         }
-      }
-      // Display: accumulated finals + current interim
-      const display = (finalText + " " + interim).trim();
-      setVoiceText(display);
-    };
-    recognition.onerror = (event: any) => {
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setError("Mikrofon-Zugriff verweigert. Prüfe die Browser-Berechtigung (URL-Leiste → Sicherheit → Mikrofon erlauben) oder tippe den Text direkt ein.");
-        shouldRecordRef.current = false;
-      } else if (event.error === "no-speech") {
-        // no-speech is normal during pauses — don't show error
-      } else if (event.error === "network") {
-        setError("Netzwerkfehler bei der Spracherkennung. Tippe den Text ein.");
-        shouldRecordRef.current = false;
-      } else if (event.error === "aborted") {
-        // User clicked stop — normal
-      } else {
-        setError(`Spracherkennung: ${event.error}`);
-      }
-      if (event.error !== "no-speech" && event.error !== "aborted") {
-        setRecording(false);
-      }
-    };
-    recognition.onend = () => {
-      // Chrome stops recognition after a few seconds of silence or periodically.
-      // Auto-restart if the user still wants to record.
-      if (shouldRecordRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          // "recognition has already started" — ignore
+        if (event.error !== "no-speech" && event.error !== "aborted") {
+          setRecording(false);
         }
-      } else {
-        setRecording(false);
-      }
+      };
+
+      recognition.onend = () => {
+        // Chrome stops after each phrase (continuous=false).
+        // Auto-restart with a NEW recognition instance if user still recording.
+        if (shouldRecordRef.current) {
+          const newRec = createRecognition();
+          recognitionRef.current = newRec;
+          try {
+            newRec.start();
+          } catch {
+            // Will retry on next cycle
+          }
+        } else {
+          setRecording(false);
+        }
+      };
+
+      return recognition;
     };
+
+    const recognition = createRecognition();
     recognitionRef.current = recognition;
     shouldRecordRef.current = true;
     try {
