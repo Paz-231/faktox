@@ -82,6 +82,21 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
       setRecipientUid(c.uid || "");
     }
   };
+
+  // Auto-match: Wenn prefillData einen Empfängernamen hat und Kunden geladen sind,
+  // prüfe ob ein Kunde mit diesem Namen existiert und wähle ihn automatisch aus.
+  useEffect(() => {
+    if (!prefillData?.recipient_name || !customers.length || customerId) return;
+    const match = customers.find((c: any) => {
+      const cName = (c.name || "").toLowerCase().trim();
+      const pName = (prefillData.recipient_name || "").toLowerCase().trim();
+      return cName === pName || cName.includes(pName) || pName.includes(cName);
+    });
+    if (match) {
+      handleSelectCustomer(match._id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customers, prefillData?.recipient_name]);
   const [taxMode, setTaxMode] = useState(prefillData?.tax_mode || "kleinunternehmer");
   const [paymentTerms, setPaymentTerms] = useState(prefillData?.payment_terms || "Zahlbar ohne Abzug innerhalb von 7 Tagen nach Rechnungserhalt.");
   const [items, setItems] = useState<InvoiceItem[]>(
