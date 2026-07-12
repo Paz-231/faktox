@@ -101,6 +101,18 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     };
   }, []);
 
+  // Stop mic when leaving voice mode (scan result, mode change, etc.)
+  useEffect(() => {
+    if (scanResult || mode !== "voice") {
+      shouldRecordRef.current = false;
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+        recognitionRef.current = null;
+      }
+      setRecording(false);
+    }
+  }, [scanResult, mode]);
+
   // ── Photo scan ──
   const handleFile = async (file: File) => {
     setError("");
@@ -260,6 +272,8 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
       setError("Bitte tippe oder diktiere zuerst einen Text");
       return;
     }
+    // Stop mic before starting AI analysis
+    stopRecording();
     setScanning(true);
     setError("");
     try {
