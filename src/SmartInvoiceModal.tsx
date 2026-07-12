@@ -142,20 +142,38 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
       setError("Spracherkennung wird von diesem Browser nicht unterstützt. Tippe den Text ein.");
       return;
     }
+    // Clean up any previous recognition instance
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+      recognitionRef.current = null;
+    }
     const recognition = new SR();
     recognition.lang = "de-AT";
     recognition.continuous = true;
     recognition.interimResults = true;
+    // Keep a local reference to the accumulated text so onresult doesn't lose
+    // previous results when Chrome restarts recognition internally
+    let accumulated = voiceText;
     recognition.onresult = (event: any) => {
       let finalText = "";
+      let interimText = "";
       for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalText += event.results[i][0].transcript;
         } else {
-          finalText += event.results[i][0].transcript;
+          interimText += event.results[i][0].transcript;
         }
       }
-      setVoiceText(finalText);
+      // Build text: accumulated final results + current interim
+      const allFinal = event.results.length > 0
+        ? Array.from(event.results).filter((r: any) => r.isFinal).map((r: any) => r[0].transcript).join("")
+        : "";
+      const allInterim = event.results.length > 0
+        ? Array.from(event.results).filter((r: any) => !r.isFinal).map((r: any) => r[0].transcript).join("")
+        : "";
+      const newText = (allFinal || accumulated) + (allFinal && allInterim ? " " : "") + allInterim;
+      setVoiceText(newText.trim());
+      if (allFinal) accumulated = allFinal;
     };
     recognition.onerror = (event: any) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
@@ -190,7 +208,14 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     };
     recognitionRef.current = recognition;
     shouldRecordRef.current = true;
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err: any) {
+      setError("Spracherkennung konnte nicht gestartet werden: " + (err.message || "unbekannt"));
+      shouldRecordRef.current = false;
+      setRecording(false);
+      return;
+    }
     setRecording(true);
   };
 
