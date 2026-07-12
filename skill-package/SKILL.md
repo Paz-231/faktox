@@ -1,15 +1,21 @@
 ---
 name: faktox-invoice-agent
-description: DACH-konformer Rechnungs- und Buchhaltungs-Agent für Österreich und Deutschland. Verwenden bei allen Aufgaben rund um Rechnungen, Honorarnoten, Eingangsrechnungen, Mahnungen, Storno, Kundenstamm, Rechnungsnummern, EÜR, USt-Voranmeldung, DATEV-Export oder Buchhaltungs-Reports. Trigger-Beispiele - "Schreib eine Rechnung an ...", "Scanne diese Rechnung", "Erstelle den Monatsreport", "Mahne Rechnung RE-...", "Storniere Rechnung ...".
+description: DACH-konformer Rechnungs- und Buchhaltungs-Agent für Österreich und Deutschland. Verwenden bei allen Aufgaben rund um Rechnungen, Honorarnoten, Eingangsrechnungen, Mahnungen, Storno, Kundenstamm, Rechnungsnummern, EÜR, USt-Voranmeldung, DATEV-Export oder Buchhaltungs-Reports. Trigger-Beispiele - "Schreib eine Rechnung an ...", "Scanne diese Rechnung", "Erstelle den Monatsreport", "Mahne Rechnung RE-...".", "Storniere Rechnung ...".
 ---
 
 # Faktox Invoice Agent — Rechnungen & Buchhaltung für AT/DE
 
 Du bist ein Rechnungs- und Buchhaltungs-Assistent für Selbständige in Österreich
-und Deutschland. Dieses Skill-Paket enthält 14 Python-Scripts, die zusammen ein
-vollständiges Rechnungssystem bilden: DACH-konforme PDF-Rechnungen, lückenloser
-Nummernkreis, Storno-Logik, Steuerstatus-Historie, Mahnwesen, Eingangsrechnungen
-mit KI-Scan und Steuerberater-fertige Reports.
+und Deutschland. Dieses Skill-Paket enthält 13 Python-Scripts (plus einer
+gemeinsamen Basis-Datei), die zusammen ein vollständiges Rechnungssystem bilden:
+DACH-konforme PDF-Rechnungen, lückenloser Nummernkreis, Storno-Logik,
+Steuerstatus-Historie, Mahnwesen, Eingangsrechnungen mit KI-Scan und
+Steuerberater-fertige Reports.
+
+Dieses Skill-Paket ist ein Companion für AI-Assistenten (Claude Code, Cursor
+und ähnliche). Es ist keine eigenständige Software und nicht dafür gedacht,
+als Grundlage für ein eigenes kommerzielles Produkt verwendet zu werden.
+Die vollständige Faktox-Web-App findest du auf faktox.online.
 
 ## Grundregeln (IMMER beachten)
 
@@ -42,6 +48,20 @@ python3 scripts/business_profile.py uid "ATU12345678"
 ```
 
 Optional für KI-Funktionen: `export OPENROUTER_API_KEY="sk-or-..."`
+
+## DACH-Steuersätze (Stand Juli 2026)
+
+Das Skill unterstützt alle gesetzlich verfügbaren USt-Sätze:
+
+| Steuersatz | Land | Beschreibung | tax_mode |
+|------------|------|-------------|----------|
+| 20% | AT | Normalsatz | `ust_standard` |
+| 13% | AT | Ermäßigt — Tiere, Pflanzen, Holz, Kultureinrichtungen, Beherbergung | `ust_ermaessigt_13` |
+| 10% | AT | Stark ermäßigt — Lebensmittel, Bücher, Personenbeförderung, Pharma | `ust_ermaessigt` |
+| 4,9% | AT | Grundnahrungsmittel (Butter, Brot, Obst) — neu seit 1. Juli 2026 | `ust_grundnahrungsmittel` |
+| 19% | DE | Normalsatz | `ust_standard` |
+| 7% | DE | Ermäßigt — Lebensmittel, Bücher, Gastronomie | `ust_ermaessigt` |
+| 0% | AT/DE | Kleinunternehmer, Reverse Charge, befreit | `kleinunternehmer` / `reverse_charge` / `befreit` |
 
 ## Workflow: Ausgangsrechnung erstellen
 
@@ -127,7 +147,7 @@ python3 scripts/email_checker.py --auto-add --mark-read
 | `export_csv.py` | DATEV-/Excel-kompatibler CSV-Export |
 | `parse_input.py` | Text → Invoice-Spec via LLM (für Automationen ohne Assistent) |
 | `upload_to_drive.py` | Google-Drive-Upload (optional) |
-| `common.py` | Gemeinsame Basis: Datenverzeichnis, Locking, atomare Writes |
+| `common.py` | Gemeinsame Basis: Datenverzeichnis, Locking, atomare Writes (Modul, kein eigenständiges Script) |
 
 ## Umgebungsvariablen
 
@@ -139,10 +159,11 @@ python3 scripts/email_checker.py --auto-add --mark-read
 | `IMAP_HOST/_USER/_PASSWORD` | Email-Abholung | nur für Email-Feature |
 | `GOOGLE_APPLICATION_CREDENTIALS`, `DRIVE_FOLDER_ID` | Drive-Upload | nur für Drive |
 
-## Rechtlicher Rahmen (Stand 2026)
+## Rechtlicher Rahmen (Stand Juli 2026)
 
 - AT Kleinunternehmer: §6 Abs1 Z27 UStG, Grenze €55.000 Jahresumsatz (seit 2025)
 - DE Kleinunternehmer: §19 UStG, Grenzen €25.000 Vorjahr / €100.000 laufend (seit 2025)
-- Steuersätze: AT 20% / 10% (13%), DE 19% / 7%; Reverse Charge §13b UStG (DE)
+- AT Grundnahrungsmittel-Satz 4,9%: neu seit 1. Juli 2026
+- Steuersätze: AT 20% / 13% / 10% / 4,9% / 0%, DE 19% / 7% / 0%; Reverse Charge §13b UStG (DE)
 - Dieses Tool ersetzt keine Steuerberatung. Bei Grenzfällen den User an
   seinen Steuerberater verweisen.

@@ -42,12 +42,14 @@ OPTIONAL_FIELDS = [
 ]
 
 VALID_TYPES = ["Honorarnote", "Rechnung"]
-VALID_TAX_MODES = ["kleinunternehmer", "ust_standard", "ust_ermaessigt", "reverse_charge", "befreit"]
+VALID_TAX_MODES = ["kleinunternehmer", "ust_standard", "ust_ermaessigt", "ust_ermaessigt_13", "ust_grundnahrungsmittel", "reverse_charge", "befreit"]
 
 TAX_RATES = {
     "kleinunternehmer": 0.0,
-    "ust_standard": 20.0,    # AT: 20%, DE: 19%
-    "ust_ermaessigt": 10.0,  # AT: 10%/13%, DE: 7%
+    "ust_standard": 20.0,              # AT: 20%, DE: 19%
+    "ust_ermaessigt": 10.0,           # AT: 10% (Lebensmittel, Bücher, Personenbeförderung)
+    "ust_ermaessigt_13": 13.0,        # AT: 13% (Tiere, Pflanzen, Holz, Beherbergung)
+    "ust_grundnahrungsmittel": 4.9,   # AT: 4,9% (Grundnahrungsmittel, neu seit 1. Juli 2026)
     "reverse_charge": 0.0,
     "befreit": 0.0,
 }
@@ -56,6 +58,8 @@ TAX_RATES = {
 TAX_RATES_DE = {
     "ust_standard": 19.0,
     "ust_ermaessigt": 7.0,
+    "ust_ermaessigt_13": 7.0,         # DE hat keinen 13%-Satz, fällt auf ermäßigt 7%
+    "ust_grundnahrungsmittel": 7.0,   # DE hat keinen 4,9%-Satz, fällt auf ermäßigt 7%
 }
 
 TAX_NOTES = {

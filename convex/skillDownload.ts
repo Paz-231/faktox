@@ -163,7 +163,7 @@ export const verifyDownload = httpAction(async (ctx, request) => {
   return new Response(JSON.stringify({
     valid: true,
     email: result.email,
-    downloadUrl: "https://github.com/Paz-231/faktox/releases/download/v1.0/faktox-invoice-agent.zip",
+    downloadUrl: "https://github.com/Paz-231/faktox/releases/download/v1.2.0/faktox-invoice-agent.zip",
   }), {
     status: 200,
     headers: {

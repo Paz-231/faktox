@@ -2,7 +2,7 @@
 """Parse unstructured text into invoice JSON via LLM.
 
 Usage: python3 parse_input.py "Rechnung an Herbert für 5 Stunden à 120€" [--out spec.json]
-Env:   OPENROUTER_API_KEY, LLM_MODEL (default: anthropic/claude-sonnet-5)
+Env:   OPENROUTER_API_KEY, LLM_MODEL (default: openai/gpt-4o)
 
 Hinweis: Läuft der Skill in Claude Code/Cursor, kann der Assistent die
 Spec auch direkt selbst erstellen — dieses Script ist der Weg für
@@ -21,7 +21,7 @@ def main():
     key = api_key()
     if not key: print("❌ Set OPENROUTER_API_KEY", file=sys.stderr); sys.exit(1)
     url = api_url()
-    r = requests.post(f"{url}/v1/chat/completions", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, json={"model": os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-5"), "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": args.text}], "temperature": 0.1, "response_format": {"type": "json_object"}}, timeout=60)
+    r = requests.post(f"{url}/v1/chat/completions", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, json={"model": os.environ.get("LLM_MODEL", "openai/gpt-4o"), "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": args.text}], "temperature": 0.1, "response_format": {"type": "json_object"}}, timeout=60)
     r.raise_for_status()
     result = json.loads(r.json()["choices"][0]["message"]["content"])
     if args.out:

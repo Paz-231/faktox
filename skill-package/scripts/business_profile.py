@@ -57,7 +57,9 @@ VALID_LEGAL_FORMS = [
 VALID_TAX_STATUSES = [
     "kleinunternehmer",      # AT: §6 Abs1 Z27 UStG, DE: §19 UStG — 0% USt
     "ust_standard",          # Regulär umsatzsteuerpflichtig (AT 20%, DE 19%)
-    "ust_ermaessigt",        # Ermäßigter Steuersatz (AT 10%/13%, DE 7%) — nur für bestimmte Leistungen
+    "ust_ermaessigt",        # AT: 10% (Lebensmittel, Bücher, Personenbeförderung, Pharma)
+    "ust_ermaessigt_13",     # AT: 13% (Tiere, Pflanzen, Holz, Kultureinrichtungen, Beherbergung)
+    "ust_grundnahrungsmittel", # AT: 4,9% (Grundnahrungsmittel — neu seit 1. Juli 2026)
     "reverse_charge",        # Steuerschuldnerschaft des Leistungsempfängers
     "befreit",               # Von USt befreit (z.B. ärztliche Heilbehandlung)
     "nicht_uid_pflichtig",   # Unter der Kleinunternehmergrenze (AT: €55.000 seit 2025)
@@ -68,7 +70,9 @@ DEFAULT_RATES = {
     "AT": {
         "kleinunternehmer": 0.0,
         "ust_standard": 20.0,
-        "ust_ermaessigt": 10.0,   # 10% für Tourismus, 13% für lebende Tiere
+        "ust_ermaessigt": 10.0,          # Lebensmittel, Bücher, Personenbeförderung, Pharma
+        "ust_ermaessigt_13": 13.0,       # Tiere, Pflanzen, Holz, Beherbergung
+        "ust_grundnahrungsmittel": 4.9,  # Grundnahrungsmittel — neu seit 1. Juli 2026
         "reverse_charge": 0.0,
         "befreit": 0.0,
     },
@@ -76,6 +80,8 @@ DEFAULT_RATES = {
         "kleinunternehmer": 0.0,
         "ust_standard": 19.0,
         "ust_ermaessigt": 7.0,
+        "ust_ermaessigt_13": 7.0,         # DE hat keinen 13%-Satz, fällt auf 7%
+        "ust_grundnahrungsmittel": 7.0,   # DE hat keinen 4,9%-Satz, fällt auf 7%
         "reverse_charge": 0.0,
         "befreit": 0.0,
     },

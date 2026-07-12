@@ -1,6 +1,6 @@
 ═══════════════════════════════════════════════════════════════════════
   FAKTOX INVOICE AGENT — ANLEITUNG
-  Version 1.1.0 · © 2026 maighty Labs · faktox.online
+  Version 1.2.0 · © 2026 maighty Labs · faktox.online
 ═══════════════════════════════════════════════════════════════════════
 
 Danke für deinen Kauf! Diese Anleitung enthält alles, was du brauchst,
@@ -40,7 +40,11 @@ Du redest einfach mit deinem Assistenten ("Schreib eine Rechnung an
 Herbert Thaler für 5 Stunden Beratung à 120 Euro") — der Assistent
 nutzt die mitgelieferten Scripts und erledigt den Rest korrekt.
 
-Alle Scripts funktionieren auch OHNE Assistenten direkt im Terminal.
+Dieses Skill-Paket ist ein Companion für AI-Assistenten. Es ist keine
+eigenständige Software und darf nicht als Grundlage für ein eigenes
+kommerzielles Produkt verwendet werden (siehe Lizenz, Abschnitt 12).
+Die vollständige Faktox-Web-App mit Online-Dashboard, Kundenportal
+und automatischen Backups findest du auf faktox.online.
 
 ───────────────────────────────────────────────────────────────────────
 2. VORAUSSETZUNGEN
@@ -74,7 +78,7 @@ Schritt 2 — Als Skill installieren:
     mkdir -p ~/.cursor/skills
     cp -r faktox-invoice-agent ~/.cursor/skills/
 
-  Anderer Assistent / ohne Assistent:
+  Anderer Assistent:
     Ordner an einen beliebigen Ort legen (z.B. ~/faktox-invoice-agent)
     und die Scripts direkt im Terminal nutzen.
 
@@ -238,7 +242,7 @@ Tipp: FAKTOX_DATA_DIR direkt in einen synchronisierten Ordner legen
   Für KI-Funktionen (Foto-Scan, Text-Parsing):
     OPENROUTER_API_KEY   API-Key von openrouter.ai (sk-or-...)
     VISION_MODEL         Vision-Modell (Standard: openai/gpt-4o)
-    LLM_MODEL            Text-Modell (Standard: anthropic/claude-sonnet-5)
+    LLM_MODEL            Text-Modell (Standard: openai/gpt-4o)
 
   Für Email-Abholung:
     IMAP_HOST            z.B. imap.gmail.com
@@ -269,7 +273,10 @@ Dauerhaft setzen: in ~/.zshrc bzw. ~/.bashrc eintragen
     dem 01.07. weiterhin 0% + Kleinunternehmer-Hinweis, Rechnungen ab
     dem 01.07. den vollen Steuersatz. Der Stichtag wird pro Rechnung
     aus deiner Steuerstatus-Historie ermittelt.
-  · Steuersätze: AT 20% / ermäßigt 10%, DE 19% / ermäßigt 7%,
+  · Steuersätze (Stand Juli 2026):
+    AT: 20% (Normal), 13% (ermäßigt), 10% (stark ermäßigt),
+        4,9% (Grundnahrungsmittel, neu seit 1. Juli 2026), 0%
+    DE: 19% (Normal), 7% (ermäßigt), 0%
     Reverse Charge 0% mit Pflichthinweis (DE: §13b UStG).
   · Storno: Stornierte Rechnungen behalten ihre Nummer, die
     Storno-Rechnung bekommt eine eigene fortlaufende Nummer — der
@@ -347,7 +354,9 @@ Lizenz:   Einzelplatz-Lizenz, Details in LICENSE.txt
 Support:  paz@faktox.online
 Web:      https://faktox.online
 
-Tipp: Wenn du lieber eine fertige Web-App statt eines Skills willst —
-Faktox gibt es auch als SaaS auf faktox.online (Free-Plan verfügbar).
+Hinweis: Der Faktox Invoice Agent ist ein Companion-Skill für AI-
+Assistenten. Die vollständige Faktox-Web-App mit Online-Dashboard,
+Kundenportal, automatischen Backups und mehr findest du auf
+faktox.online (Free-Plan verfügbar).
 
 Viel Erfolg mit deiner Buchhaltung!

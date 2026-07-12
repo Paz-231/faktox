@@ -9,6 +9,10 @@ FAKTOX INVOICE AGENT — EINZELPLATZ-LIZENZ
    AI-Assistenten (z.B. Claude Code UND Cursor) auf demselben Arbeitsplatz
    ist erlaubt.
 
+   Der Faktox Invoice Agent ist ein Companion-Skill für AI-Assistenten.
+   Er ist keine eigenständige Software und kein Framework zur Erstellung
+   eigener kommerzieller Produkte.
+
 2. UPDATES
    Fortlaufende Updates sind im Kaufpreis enthalten. Dein Download-Link
    bleibt dauerhaft gültig und liefert immer die aktuellste Version.
@@ -17,10 +21,14 @@ FAKTOX INVOICE AGENT — EINZELPLATZ-LIZENZ
    - Weiterverkauf, Vermietung oder Weitergabe des Pakets oder von Teilen
      davon an Dritte
    - Veröffentlichung des Quellcodes (auch nicht in öffentlichen Repos)
-   - Einbau in eigene kommerzielle Produkte ohne schriftliche Zustimmung
+   - Einbau in eigene kommerzielle Produkte oder SaaS-Angebote ohne
+     schriftliche Zustimmung
+   - Nutzung als Basis für ein konkurrierendes Rechnungs- oder
+     Buchhaltungsprodukt
+   - Entfernen oder Ändern von Urheberrechtshinweisen
 
 4. ERLAUBT
-   - Anpassung der Scripts für den eigenen Bedarf
+   - Anpassung der Scripts für den eigenen Bedarf (private Nutzung)
    - Erstellung von Backups
 
 5. HAFTUNG
@@ -30,5 +38,9 @@ FAKTOX INVOICE AGENT — EINZELPLATZ-LIZENZ
    beim Nutzer. Haftung für indirekte Schäden ist ausgeschlossen, soweit
    gesetzlich zulässig.
 
-6. SUPPORT
+6. MARKENZEICHEN
+   "Faktox" und das Faktox-Logo sind Marken der maighty Labs.
+   Die Nutzung der Marke ohne schriftliche Genehmigung ist nicht erlaubt.
+
+7. SUPPORT
    Fragen und Fehlermeldungen: paz@faktox.online

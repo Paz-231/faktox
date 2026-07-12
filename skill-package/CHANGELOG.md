@@ -1,5 +1,28 @@
 # Changelog — Faktox Invoice Agent
 
+## 1.2.0 (2026-07-12)
+
+### Aktualisiert
+- SKILL.md überarbeitet: klarere Positionierung als Companion-Skill für
+  AI-Assistenten, nicht als eigenständige Software oder Framework
+- Alle DACH-Steuersätze aktualisiert (Stand Juli 2026):
+  AT 20% / 13% / 10% / 4,9% (neu) / 0%, DE 19% / 7% / 0%
+- AT Grundnahrungsmittel-Satz 4,9% dokumentiert (neu seit 1. Juli 2026)
+- ANLEITUNG.txt: klarer Hinweis auf Faktox-Web-App (faktox.online)
+- LICENSE.txt: erweitert um Markenzeichnen-Klausel und explizites Verbot
+  der Nutzung als Basis für konkurrierende Produkte
+- LLM_MODEL-Standard in ANLEITUNG.txt korrigiert (openai/gpt-4o)
+- Script-Anzahl korrigiert: 13 Scripts + 1 Modul (common.py)
+
+### Positionierung
+- SKILL.md enthält nun expliziten Hinweis: "keine eigenständige Software,
+  nicht dafür gedacht, als Grundlage für ein eigenes kommerzielles Produkt
+  verwendet zu werden"
+- ANLEITUNG.txt Abschnitt 1 verweist auf Faktox-Web-App als vollständige
+  SaaS-Lösung
+- LICENSE.txt Abschnitt 3 verbietet ausdrücklich die Nutzung als Basis für
+  ein konkurrierendes Rechnungs- oder Buchhaltungsprodukt
+
 ## 1.1.0 (2026-07-08)
 
 **Wichtig:** Diese Version macht den Skill auf jedem Rechner lauffähig
