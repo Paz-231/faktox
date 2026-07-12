@@ -1,6 +1,6 @@
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { getAuthUserId } from "./authHelper";
 
 // ═══════════════════════════════════════════════════════════
@@ -14,6 +14,19 @@ import { getAuthUserId } from "./authHelper";
 // 4. Frontend ruft createIncomingFromScan() mit storageId → Vision Scan → Eingangsrechnung
 //
 // Unterstützt: PDF, JPG, PNG, WEBP, TIFF
+
+// Internal query for action auth — Actions have ActionCtx (no ctx.db),
+// so we can't use getAuthUserId directly. This query wraps the auth check.
+const _authCheck = internalQuery({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    return await getAuthUserId(ctx, args.sessionToken);
+  },
+});
+
+async function actionAuth(ctx: any, sessionToken: string) {
+  return await ctx.runQuery(internal.fileUpload._authCheck, { sessionToken });
+}
 
 // Step 1: Generate upload URL
 export const generateUploadUrl = mutation({
@@ -220,7 +233,7 @@ export const scanOutgoingFile = action({
     fileStorageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx, args.sessionToken);
+    const userId = await actionAuth(ctx, args.sessionToken);
 
     const fileUrl = await ctx.storage.getUrl(args.fileStorageId);
     if (!fileUrl) return { error: "Datei nicht gefunden" };
@@ -334,7 +347,7 @@ export const parseVoiceToInvoice = action({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx, args.sessionToken);
+    const userId = await actionAuth(ctx, args.sessionToken);
 
     const apiKey = process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENROUTER_API_KEY;
     const apiUrl = process.env.BUILT_IN_FORGE_API_URL || "https://openrouter.ai/api";
