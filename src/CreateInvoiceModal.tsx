@@ -173,7 +173,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
         recipientCity,
         recipientUid: recipientUid || undefined,
         taxMode,
-        taxRate,
+        taxRate: profile?.currentTaxRate ?? 0,
         taxNote: taxNotes[taxMode] || undefined,
         netAmount: netTotal,
         vatAmount,
