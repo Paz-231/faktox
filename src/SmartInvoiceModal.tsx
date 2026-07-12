@@ -151,41 +151,43 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     recognition.lang = "de-AT";
     recognition.continuous = true;
     recognition.interimResults = true;
-    // Keep a local reference to the accumulated text so onresult doesn't lose
-    // previous results when Chrome restarts recognition internally
-    let accumulated = voiceText;
+
+    // Accumulated FINAL text across all restarts.
+    // Interim text is transient and replaced each event.
+    let finalText = voiceText || "";
+
     recognition.onresult = (event: any) => {
-      let finalText = "";
-      let interimText = "";
-      for (let i = 0; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript;
+      // event.resultIndex = first changed result since last event.
+      // Only process NEW results to avoid duplicating text on Chrome auto-restart.
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          // Append final results to accumulated text
+          let transcript = result[0].transcript;
+          if (finalText && !finalText.endsWith(" ")) {
+            finalText += " ";
+          }
+          finalText += transcript;
         } else {
-          interimText += event.results[i][0].transcript;
+          interim += result[0].transcript;
         }
       }
-      // Build text: accumulated final results + current interim
-      const allFinal = event.results.length > 0
-        ? Array.from(event.results).filter((r: any) => r.isFinal).map((r: any) => r[0].transcript).join("")
-        : "";
-      const allInterim = event.results.length > 0
-        ? Array.from(event.results).filter((r: any) => !r.isFinal).map((r: any) => r[0].transcript).join("")
-        : "";
-      const newText = (allFinal || accumulated) + (allFinal && allInterim ? " " : "") + allInterim;
-      setVoiceText(newText.trim());
-      if (allFinal) accumulated = allFinal;
+      // Display: accumulated finals + current interim
+      const display = (finalText + " " + interim).trim();
+      setVoiceText(display);
     };
     recognition.onerror = (event: any) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         setError("Mikrofon-Zugriff verweigert. Prüfe die Browser-Berechtigung (URL-Leiste → Sicherheit → Mikrofon erlauben) oder tippe den Text direkt ein.");
         shouldRecordRef.current = false;
       } else if (event.error === "no-speech") {
-        // no-speech is normal during pauses — don't show error, just let auto-restart handle it
+        // no-speech is normal during pauses — don't show error
       } else if (event.error === "network") {
         setError("Netzwerkfehler bei der Spracherkennung. Tippe den Text ein.");
         shouldRecordRef.current = false;
       } else if (event.error === "aborted") {
-        // User clicked stop — normal, don't show error
+        // User clicked stop — normal
       } else {
         setError(`Spracherkennung: ${event.error}`);
       }
@@ -195,12 +197,12 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     };
     recognition.onend = () => {
       // Chrome stops recognition after a few seconds of silence or periodically.
-      // Auto-restart if the user still wants to record (shouldRecordRef survives re-renders).
+      // Auto-restart if the user still wants to record.
       if (shouldRecordRef.current) {
         try {
           recognition.start();
         } catch {
-          // "recognition has already started" — ignore, it will restart on next onend
+          // "recognition has already started" — ignore
         }
       } else {
         setRecording(false);
