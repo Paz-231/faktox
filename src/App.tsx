@@ -582,7 +582,7 @@ export default function App() {
                   und erstelle Rechnungen per Voice oder Text.
                 </p>
               </div>
-              <div className="skill-price">99€<span>einmalig</span></div>
+              <div className="skill-price">249€<span>einmalig</span></div>
             </div>
 
             <div className="skill-features">
@@ -616,7 +616,7 @@ export default function App() {
                 onChange={(e) => setSkillEmail(e.target.value)}
               />
               <button className="btn btn-primary" onClick={handleSkillBuy} disabled={skillBuying}>
-                {skillBuying ? "Weiterleitung..." : "Jetzt kaufen — 99€"}
+                {skillBuying ? "Weiterleitung..." : "Jetzt kaufen — 249€"}
               </button>
             </div>
 

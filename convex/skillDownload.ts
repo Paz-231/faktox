@@ -3,10 +3,10 @@ import { api } from "./_generated/api";
 import { verifyStripeSignature } from "./stripe";
 
 // ═══════════════════════════════════════════════════════════
-// Skill Download API — 99€ einmalig, dann Download
+// Skill Download API — 249€ einmalig, dann Download
 // ═══════════════════════════════════════════════════════════
 
-// Create Stripe Checkout for Skill (one-time payment, 99€)
+// Create Stripe Checkout for Skill (one-time payment, 249€)
 export const createSkillCheckout = httpAction(async (ctx, request) => {
   const body = await request.json();
   const { email } = body as { email?: string };
@@ -33,7 +33,7 @@ export const createSkillCheckout = httpAction(async (ctx, request) => {
       "customer_email": email || "",
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": "eur",
-      "line_items[0][price_data][unit_amount]": "9900", // €99.00
+      "line_items[0][price_data][unit_amount]": "24900", // €249.00
       "line_items[0][price_data][product_data][name]": "Faktox Invoice Agent — AI Skill",
       "line_items[0][price_data][product_data][description]": "Kompletter Rechnungs-Skill für Claude Code, Cursor & Co. 13 Python-Scripts, DACH-konform, mit AI Foto-Scan, Mahnwesen, Buchhaltungs-Report.",
       "success_url": `${frontendUrl}/#skill-success?session_id={CHECKOUT_SESSION_ID}`,
