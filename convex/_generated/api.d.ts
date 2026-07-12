@@ -23,6 +23,7 @@ import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as pdfBuilder from "../pdfBuilder.js";
 import type * as profile from "../profile.js";
+import type * as reports from "../reports.js";
 import type * as sessions from "../sessions.js";
 import type * as settings from "../settings.js";
 import type * as skillDownload from "../skillDownload.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   pdfBuilder: typeof pdfBuilder;
   profile: typeof profile;
+  reports: typeof reports;
   sessions: typeof sessions;
   settings: typeof settings;
   skillDownload: typeof skillDownload;

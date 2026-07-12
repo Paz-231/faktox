@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { UpgradeModal } from "./UpgradeModal";
 import { FileUpload } from "./FileUpload";
@@ -9,7 +9,7 @@ import { CustomerDetail } from "./CustomerDetail";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { SettingsPage } from "./SettingsPage";
 import { SelectPicker } from "./SelectPicker";
-import { money, parseAppDate } from "./lib";
+import { money } from "./lib";
 
 interface DashboardProps {
   auth: { userId: string; email: string; name: string; plan: string; sessionToken: string };
@@ -160,17 +160,6 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
   );
 }
 
-// ─── Shared date helpers ─────────────────────────────────────
-function inMonth(dateStr: string, month: number, year: number): boolean {
-  const d = parseAppDate(dateStr);
-  return !!d && d.getMonth() === month && d.getFullYear() === year;
-}
-
-function inYear(dateStr: string, year: number): boolean {
-  const d = parseAppDate(dateStr);
-  return !!d && d.getFullYear() === year;
-}
-
 // ═══════════════════════════════════════════════════════════
 // Dashboard Page — Live-KPIs + Schnellaktionen + Onboarding
 // ═══════════════════════════════════════════════════════════
@@ -187,38 +176,26 @@ function DashboardPage({
   const userId = auth.userId as any;
   const sessionToken = auth.sessionToken;
 
-  const invoices = useQuery(api.invoices.list, { userId, sessionToken }) ?? [];
-  const incoming = useQuery(api.incoming.list, { userId, sessionToken }) ?? [];
-  const auftrags = useQuery(api.auftrags.list, { userId, sessionToken }) ?? [];
-  const profile = useQuery(api.profile.get, { userId, sessionToken });
-
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
   const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
-  const kpis = useMemo(() => {
-    const activeInvoices = invoices.filter((r: any) => r.status !== "storno" && !r.stornoOf);
-    const monthInvoices = activeInvoices.filter((r: any) => inMonth(r.date, month, year));
-    const revenue = monthInvoices.reduce((s: number, r: any) => s + (r.grossAmount || 0), 0);
-    const vatReceived = monthInvoices.reduce((s: number, r: any) => s + (r.vatAmount || 0), 0);
+  // Serverseitige Aggregation über ALLE Belege (nicht nur die letzten 100)
+  const summary = useQuery(api.reports.summary, { sessionToken, month, year });
+  const auftrags = useQuery(api.auftrags.list, { userId, sessionToken }) ?? [];
+  const profile = useQuery(api.profile.get, { userId, sessionToken });
 
-    const monthIncoming = incoming.filter((i: any) => inMonth(i.date, month, year));
-    const expenses = monthIncoming.reduce((s: number, i: any) => s + (i.grossAmount || 0), 0);
-    const vatPaid = monthIncoming.reduce((s: number, i: any) => s + (i.vatAmount || 0), 0);
-
-    const open = activeInvoices.filter((r: any) => r.status === "sent" || r.status === "overdue");
-    const openAmount = open.reduce((s: number, r: any) => s + (r.grossAmount || 0), 0);
-
-    return {
-      revenue,
-      expenses,
-      ustSaldo: vatReceived - vatPaid,
-      openAmount,
-      openCount: open.length,
-      monthInvoiceCount: monthInvoices.length,
-    };
-  }, [invoices, incoming, month, year]);
+  const kpis = {
+    revenue: summary?.month.revenueGross ?? 0,
+    expenses: summary?.month.expensesGross ?? 0,
+    ustSaldo: (summary?.month.vatReceived ?? 0) - (summary?.month.vatPaid ?? 0),
+    openAmount: summary?.open.amount ?? 0,
+    openCount: summary?.open.count ?? 0,
+    monthInvoiceCount: summary?.month.invoiceCount ?? 0,
+  };
+  const totalAuftrags = summary?.totals.auftrags ?? auftrags.length;
+  const totalIncoming = summary?.totals.incoming ?? 0;
 
   const recentAuftrags = auftrags.slice(0, 5);
   const freeInvoicesLeft = Math.max(0, 3 - kpis.monthInvoiceCount);
@@ -338,16 +315,16 @@ function DashboardPage({
         <div className="card">
           <h4>Aufträge</h4>
           <p style={{ marginTop: "0.5rem" }}>
-            {auftrags.length === 0 ? "Noch keine Aufträge erstellt." : `${auftrags.length} Aufträge insgesamt.`}
+            {totalAuftrags === 0 ? "Noch keine Aufträge erstellt." : `${totalAuftrags} Aufträge insgesamt.`}
           </p>
           <button className="btn btn-sm" style={{ marginTop: "1rem" }} onClick={() => setShowCreate(true)}>
-            + {auftrags.length === 0 ? "Erster Auftrag" : "Neuer Auftrag"}
+            + {totalAuftrags === 0 ? "Erster Auftrag" : "Neuer Auftrag"}
           </button>
         </div>
         <div className="card">
           <h4>Eingangsrechnungen</h4>
           <p style={{ marginTop: "0.5rem" }}>
-            {incoming.length === 0 ? "Noch keine Rechnungen erfasst." : `${incoming.length} Rechnungen erfasst.`}
+            {totalIncoming === 0 ? "Noch keine Rechnungen erfasst." : `${totalIncoming} Rechnungen erfasst.`}
           </p>
           <button className="btn btn-sm" style={{ marginTop: "1rem" }} onClick={() => onNavigate("incoming")}>+ Erfassen</button>
         </div>
@@ -965,38 +942,30 @@ function CustomersPage({ userId, sessionToken }: { userId: any; sessionToken: st
 // ═══════════════════════════════════════════════════════════
 // Reports Page — echte Zahlen + CSV-Exporte
 // ═══════════════════════════════════════════════════════════
-function ReportsPage({ userId, sessionToken }: { userId: any; sessionToken: string }) {
-  const invoices = useQuery(api.invoices.list, { userId, sessionToken }) ?? [];
-  const incoming = useQuery(api.incoming.list, { userId, sessionToken }) ?? [];
+function ReportsPage({ userId: _userId, sessionToken }: { userId: any; sessionToken: string }) {
+  const convex = useConvex();
 
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
-  const activeInvoices = invoices.filter((r: any) => r.status !== "storno" && !r.stornoOf);
+  // Serverseitige Aggregation über ALLE Belege — die list-Queries
+  // liefern nur 100 Einträge, was Steuerzahlen verfälschen würde.
+  const summary = useQuery(api.reports.summary, { sessionToken, month, year });
 
-  const report = useMemo(() => {
-    const monthInv = activeInvoices.filter((r: any) => inMonth(r.date, month, year));
-    const monthInc = incoming.filter((i: any) => inMonth(i.date, month, year));
-    const yearInv = activeInvoices.filter((r: any) => inYear(r.date, year));
-    const yearInc = incoming.filter((i: any) => inYear(i.date, year));
-
-    const sum = (arr: any[], f: string) => arr.reduce((s, x) => s + (x[f] || 0), 0);
-
-    return {
-      monthRevenue: sum(monthInv, "netAmount"),
-      monthExpenses: sum(monthInc, "netAmount"),
-      monthVatReceived: sum(monthInv, "vatAmount"),
-      monthVatPaid: sum(monthInc, "vatAmount"),
-      monthInvCount: monthInv.length,
-      monthIncCount: monthInc.length,
-      yearRevenue: sum(yearInv, "netAmount"),
-      yearExpenses: sum(yearInc, "netAmount"),
-      yearVatReceived: sum(yearInv, "vatAmount"),
-      yearVatPaid: sum(yearInc, "vatAmount"),
-    };
-  }, [activeInvoices, incoming, month, year]);
+  const report = {
+    monthRevenue: summary?.month.revenueNet ?? 0,
+    monthExpenses: summary?.month.expensesNet ?? 0,
+    monthVatReceived: summary?.month.vatReceived ?? 0,
+    monthVatPaid: summary?.month.vatPaid ?? 0,
+    monthInvCount: summary?.month.invoiceCount ?? 0,
+    monthIncCount: summary?.month.incomingCount ?? 0,
+    yearRevenue: summary?.year.revenueNet ?? 0,
+    yearExpenses: summary?.year.expensesNet ?? 0,
+    yearVatReceived: summary?.year.vatReceived ?? 0,
+    yearVatPaid: summary?.year.vatPaid ?? 0,
+  };
 
   const downloadCsv = (fileName: string, rows: (string | number)[][]) => {
     const csv = rows
@@ -1040,15 +1009,17 @@ function ReportsPage({ userId, sessionToken }: { userId: any; sessionToken: stri
     ]);
   };
 
-  const exportDatev = () => {
+  const exportDatev = async () => {
+    // Alle Belege des Jahres serverseitig holen (nicht nur die letzten 100)
+    const data = await convex.query(api.reports.exportRows, { sessionToken, year });
     const rows: (string | number)[][] = [
       ["Belegdatum", "Belegnummer", "Buchungstext", "Netto", "USt-Satz", "USt", "Brutto", "Typ", "Status"],
     ];
-    for (const r of activeInvoices) {
+    for (const r of data.invoices) {
       rows.push([r.date, r.number, `${r.type} ${r.recipientName}`, r.netAmount.toFixed(2), `${r.taxRate}%`, r.vatAmount.toFixed(2), r.grossAmount.toFixed(2), "Ausgang", r.status]);
     }
-    for (const i of incoming) {
-      rows.push([i.date, i.number, `Eingang ${i.issuerName}`, (i.netAmount || 0).toFixed(2), `${i.taxRate || 0}%`, (i.vatAmount || 0).toFixed(2), (i.grossAmount || 0).toFixed(2), "Eingang", i.status]);
+    for (const i of data.incoming) {
+      rows.push([i.date, i.number, `Eingang ${i.issuerName}`, i.netAmount.toFixed(2), `${i.taxRate}%`, i.vatAmount.toFixed(2), i.grossAmount.toFixed(2), "Eingang", i.status]);
     }
     downloadCsv(`faktox-datev-export-${year}.csv`, rows);
   };

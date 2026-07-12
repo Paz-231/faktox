@@ -7,117 +7,43 @@ interface DashboardPageProps {
 }
 
 export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
-  const userId = auth.userId as any;
   const sessionToken = auth.sessionToken;
-  const auftrags = useQuery(api.auftrags.list, { userId, sessionToken }) ?? [];
-  const incoming = useQuery(api.incoming.list, { userId, sessionToken }) ?? [];
-  const customers = useQuery(api.customers.list, { userId, sessionToken }) ?? [];
 
-  // Calculate KPIs
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const parseDate = (s: string) => {
-    if (!s) return null;
-    for (const fmt of ["%d.%m.%Y", "%Y-%m-%d"]) {
-      try { return new Date(s.split(".").reverse().join("-")); } catch {}
-    }
-    return null;
+  // Serverseitige Aggregation über ALLE Belege (nicht nur die letzten 100)
+  const stats = useQuery(api.reports.analytics, {
+    sessionToken,
+    month: currentMonth,
+    year: currentYear,
+  });
+
+  const counts = stats?.counts ?? {
+    customers: 0, auftrags: 0, incoming: 0,
+    draft: 0, confirmed: 0, discarded: 0,
+    incomingOpen: 0, incomingPaid: 0,
   };
 
-  const isInCurrentMonth = (dateStr: string) => {
-    const d = parseDate(dateStr);
-    return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  };
+  const monthRevenue = stats?.month.revenueNet ?? 0;
+  const monthExpenses = stats?.month.expensesNet ?? 0;
+  const yearRevenue = stats?.year.revenueNet ?? 0;
+  const yearExpenses = stats?.year.expensesNet ?? 0;
+  const openPayables = stats?.openPayables.amount ?? 0;
 
-  const isInCurrentYear = (dateStr: string) => {
-    const d = parseDate(dateStr);
-    return d && d.getFullYear() === currentYear;
-  };
-
-  // Outgoing (from auftrags » rechnungen)
-  const allRechnungen: any[] = [];
-  for (const a of auftrags) {
-    if (a.rechnungIds) {
-      // We need to get rechnungen — but they're embedded in auftrag detail
-      // For now, use auftrag amounts as proxy
-    }
-  }
-
-  // Use auftrag data for KPIs
-  const confirmedAuftrags = auftrags.filter((a: any) => a.status === "confirmed");
-  const draftAuftrags = auftrags.filter((a: any) => a.status === "draft");
-  const discardedAuftrags = auftrags.filter((a: any) => a.status === "discarded");
-
-  const monthAuftrags = auftrags.filter((a: any) => isInCurrentMonth(a.date));
-  const yearAuftrags = auftrags.filter((a: any) => isInCurrentYear(a.date));
-
-  const monthRevenue = monthAuftrags
-    .filter((a: any) => a.status !== "discarded")
-    .reduce((s: number, a: any) => s + (a.netAmount || 0), 0);
-  const monthVat = monthAuftrags
-    .filter((a: any) => a.status !== "discarded")
-    .reduce((s: number, a: any) => s + (a.vatAmount || 0), 0);
-
-  const yearRevenue = yearAuftrags
-    .filter((a: any) => a.status !== "discarded")
-    .reduce((s: number, a: any) => s + (a.netAmount || 0), 0);
-  const yearVat = yearAuftrags
-    .filter((a: any) => a.status !== "discarded")
-    .reduce((s: number, a: any) => s + (a.vatAmount || 0), 0);
-
-  // Incoming KPIs
-  const monthIncoming = incoming.filter((i: any) => isInCurrentMonth(i.date));
-  const yearIncoming = incoming.filter((i: any) => isInCurrentYear(i.date));
-  const openIncoming = incoming.filter((i: any) => i.status === "open");
-  const paidIncoming = incoming.filter((i: any) => i.status === "paid");
-
-  const monthExpenses = monthIncoming.reduce((s: number, i: any) => s + (i.netAmount || 0), 0);
-  const yearExpenses = yearIncoming.reduce((s: number, i: any) => s + (i.netAmount || 0), 0);
-  const openPayables = openIncoming.reduce((s: number, i: any) => s + (i.grossAmount || 0), 0);
-
-  // USt Saldo
-  const ustReceived = monthVat;
-  const ustPaid = monthIncoming.reduce((s: number, i: any) => s + (i.vatAmount || 0), 0);
-  const ustSaldo = ustReceived - ustPaid;
-
-  // Profit
+  const ustSaldo = (stats?.month.vatReceived ?? 0) - (stats?.month.vatPaid ?? 0);
   const monthProfit = monthRevenue - monthExpenses;
   const yearProfit = yearRevenue - yearExpenses;
 
-  // Top customers by revenue
-  const customerRevenue: Record<string, number> = {};
-  for (const a of auftrags.filter((a: any) => a.status !== "discarded")) {
-    const name = (a as any).recipientName;
-    customerRevenue[name] = (customerRevenue[name] || 0) + (a as any).netAmount;
-  }
-  const topCustomers = Object.entries(customerRevenue)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const topCustomers = (stats?.topCustomers ?? []).map((c) => [c.name, c.revenue] as [string, number]);
 
-  // Monthly trend (last 6 months)
-  const months: { label: string; revenue: number; expenses: number }[] = [];
   const monthNames = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(currentYear, currentMonth - i, 1);
-    const m = d.getMonth();
-    const y = d.getFullYear();
-    const label = `${monthNames[m]} ${y}`;
-    const rev = auftrags
-      .filter((a: any) => {
-        const ad = parseDate((a as any).date);
-        return ad && ad.getMonth() === m && ad.getFullYear() === y && (a as any).status !== "discarded";
-      })
-      .reduce((s: number, a: any) => s + (a.netAmount || 0), 0);
-    const exp = incoming
-      .filter((i: any) => {
-        const id = parseDate((i as any).date);
-        return id && id.getMonth() === m && id.getFullYear() === y;
-      })
-      .reduce((s: number, i: any) => s + (i.netAmount || 0), 0);
-    months.push({ label, revenue: rev, expenses: exp });
-  }
+  const months = (stats?.trend ?? []).map((t) => ({
+    label: `${monthNames[t.m]} ${t.y}`,
+    revenue: t.revenue,
+    expenses: t.expenses,
+  }));
 
   const maxBar = Math.max(...months.map(m => Math.max(m.revenue, m.expenses)), 1);
 
@@ -146,15 +72,15 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
         </div>
         <div>
           <h4 style={{ marginBottom: "0.25rem" }}>Kunden</h4>
-          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{customers.length}</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{counts.customers}</div>
         </div>
         <div>
           <h4 style={{ marginBottom: "0.25rem" }}>Aufträge gesamt</h4>
-          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{auftrags.length}</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{counts.auftrags}</div>
         </div>
         <div>
           <h4 style={{ marginBottom: "0.25rem" }}>Eingangsrechnungen</h4>
-          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{incoming.length}</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>{counts.incoming}</div>
         </div>
       </div>
 
@@ -164,12 +90,12 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
         <div className="stat">
           <div className="stat-label">Einnahmen (Netto)</div>
           <div className="stat-value accent">{money2(monthRevenue)}</div>
-          <div className="stat-sub">{monthAuftrags.length} Aufträge</div>
+          <div className="stat-sub">{stats?.month.auftragCount ?? 0} Aufträge</div>
         </div>
         <div className="stat">
           <div className="stat-label">Ausgaben (Netto)</div>
           <div className="stat-value">{money2(monthExpenses)}</div>
-          <div className="stat-sub">{monthIncoming.length} Rechnungen</div>
+          <div className="stat-sub">{stats?.month.incomingCount ?? 0} Rechnungen</div>
         </div>
         <div className="stat">
           <div className="stat-label">Gewinn (Monat)</div>
@@ -193,12 +119,12 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
         <div className="stat">
           <div className="stat-label">Jahreseinnahmen</div>
           <div className="stat-value accent">{money2(yearRevenue)}</div>
-          <div className="stat-sub">{yearAuftrags.length} Aufträge</div>
+          <div className="stat-sub">{stats?.year.auftragCount ?? 0} Aufträge</div>
         </div>
         <div className="stat">
           <div className="stat-label">Jahresausgaben</div>
           <div className="stat-value">{money2(yearExpenses)}</div>
-          <div className="stat-sub">{yearIncoming.length} Rechnungen</div>
+          <div className="stat-sub">{stats?.year.incomingCount ?? 0} Rechnungen</div>
         </div>
         <div className="stat">
           <div className="stat-label">Jahresgewinn</div>
@@ -209,7 +135,7 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
         <div className="stat">
           <div className="stat-label">Offene Verbindlichkeiten</div>
           <div className="stat-value">{money2(openPayables)}</div>
-          <div className="stat-sub">{openIncoming.length} offen</div>
+          <div className="stat-sub">{counts.incomingOpen} offen</div>
         </div>
       </div>
 
@@ -284,21 +210,21 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
                 <div style={{ width: 10, height: 10, background: "var(--fg-3)" }} />
                 <span style={{ fontSize: "0.8125rem" }}>Entwurf</span>
               </span>
-              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{draftAuftrags.length}</span>
+              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{counts.draft}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <div style={{ width: 10, height: 10, background: "var(--success)" }} />
                 <span style={{ fontSize: "0.8125rem" }}>Bestätigt</span>
               </span>
-              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{confirmedAuftrags.length}</span>
+              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{counts.confirmed}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <div style={{ width: 10, height: 10, background: "var(--danger)" }} />
                 <span style={{ fontSize: "0.8125rem" }}>Verworfen</span>
               </span>
-              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{discardedAuftrags.length}</span>
+              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{counts.discarded}</span>
             </div>
           </div>
 
@@ -310,14 +236,14 @@ export function AnalyticsDashboard({ auth, onUpgrade }: DashboardPageProps) {
                 <div style={{ width: 10, height: 10, background: "var(--warn)" }} />
                 <span style={{ fontSize: "0.8125rem" }}>Offen</span>
               </span>
-              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{openIncoming.length}</span>
+              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{counts.incomingOpen}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <div style={{ width: 10, height: 10, background: "var(--success)" }} />
                 <span style={{ fontSize: "0.8125rem" }}>Bezahlt</span>
               </span>
-              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{paidIncoming.length}</span>
+              <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{counts.incomingPaid}</span>
             </div>
           </div>
         </div>

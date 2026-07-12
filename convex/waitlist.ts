@@ -8,10 +8,16 @@ import { v } from "convex/values";
 export const join = mutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    // Normalisieren + validieren — die Mutation ist öffentlich erreichbar
+    const email = args.email.trim().toLowerCase();
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return { success: false, message: "invalid_email" };
+    }
+
     // Check if email already exists
     const existing = await ctx.db
       .query("waitlist")
-      .withIndex("email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", email))
       .first();
 
     if (existing) {
@@ -19,7 +25,7 @@ export const join = mutation({
     }
 
     await ctx.db.insert("waitlist", {
-      email: args.email,
+      email,
       createdAt: Date.now(),
     });
 
