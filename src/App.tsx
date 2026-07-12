@@ -815,7 +815,11 @@ function MagicLinkVerify({ token }: { token: string }) {
       try {
         const result = await completeLogin({ token });
         if (cancelled) return;
-        localStorage.setItem("faktox_session", result.sessionToken);
+        if (!result.success) {
+          if (!cancelled) setError(result.error || "Token ungültig oder abgelaufen");
+          return;
+        }
+        localStorage.setItem("faktox_session", result.sessionToken!);
         window.history.replaceState({}, "", "/");
         window.location.reload();
       } catch (err: any) {
@@ -936,6 +940,10 @@ function LoginModal({ initialEmail, onClose }: { initialEmail?: string; onClose:
     setBusy(true);
     try {
       const result = await verifyMagicLink({ token: verifyToken });
+      if (!result.success) {
+        setError(result.error || "Token ungültig");
+        return;
+      }
       if (result.sessionToken) {
         localStorage.setItem("faktox_session", result.sessionToken);
         window.location.reload(); // Reload to trigger useAuth

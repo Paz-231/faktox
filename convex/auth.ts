@@ -126,7 +126,7 @@ export const completeLogin = mutation({
       .first();
 
     if (!user || !user.magicLinkExpiry || Date.now() > user.magicLinkExpiry) {
-      throw new Error("Token ungültig oder abgelaufen");
+      return { success: false, error: "Token ungültig oder abgelaufen" };
     }
 
     // Clear magic link token, update last login
@@ -154,6 +154,7 @@ export const completeLogin = mutation({
     });
 
     return {
+      success: true,
       sessionToken,
       userId: user._id,
       email: user.email,
