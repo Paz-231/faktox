@@ -104,7 +104,7 @@ export const skillWebhook = httpAction(async (ctx, request) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: process.env.RESEND_FROM_EMAIL || "Faktox <noreply@faktox.online>",
+            from: process.env.RESEND_FROM_EMAIL || "Faktox <welcome@faktox.online>",
             to: email,
             subject: "Dein Faktox Invoice Agent Skill",
             html: `
