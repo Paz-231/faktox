@@ -223,7 +223,7 @@ export const scanOutgoingFile = action({
     const userId = await getAuthUserId(ctx, args.sessionToken);
 
     const fileUrl = await ctx.storage.getUrl(args.fileStorageId);
-    if (!fileUrl) throw new Error("Datei nicht gefunden");
+    if (!fileUrl) return { error: "Datei nicht gefunden" };
 
     const response = await fetch(fileUrl);
     const blob = await response.blob();
@@ -244,7 +244,7 @@ export const scanOutgoingFile = action({
     const model = process.env.VISION_MODEL || "openai/gpt-4o";
 
     if (!apiKey) {
-      throw new Error("Kein API-Key konfiguriert — Vision-Scan nicht verfügbar");
+      return { error: "Kein API-Key konfiguriert — Vision-Scan nicht verfügbar. Bitte OPENROUTER_API_KEY in Convex setzen." };
     }
 
     let visionResponse: Response;
@@ -275,23 +275,32 @@ export const scanOutgoingFile = action({
         }),
       });
     } catch (fetchErr: any) {
-      throw new Error(`Netzwerkfehler beim Kontaktieren der KI-API: ${fetchErr.message || "unbekannt"}`);
+      return { error: `Netzwerkfehler beim Kontaktieren der KI-API: ${fetchErr.message || "unbekannt"}` };
     }
 
     if (!visionResponse.ok) {
       const errBody = await visionResponse.text().catch(() => "");
-      throw new Error(`KI-API Fehler ${visionResponse.status}: ${errBody.substring(0, 200)}`);
+      return { error: `KI-API Fehler ${visionResponse.status}: ${errBody.substring(0, 200)}` };
     }
 
     let result: any;
     try {
       result = await visionResponse.json();
-    } catch (parseErr: any) {
-      throw new Error("KI-API Antwort konnte nicht gelesen werden (ungültiges JSON).");
+    } catch {
+      return { error: "KI-API Antwort konnte nicht gelesen werden (ungültiges JSON)." };
     }
     const content: string = result.choices?.[0]?.message?.content || "";
-    const jsonText = content.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    const extracted = JSON.parse(jsonText);
+    if (!content) {
+      return { error: "KI-API hat keine Antwort geliefert." };
+    }
+
+    let extracted: any;
+    try {
+      const jsonText = content.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+      extracted = JSON.parse(jsonText);
+    } catch {
+      return { error: "KI-Antwort konnte nicht als JSON geparst werden." };
+    }
 
     // Clean up file after scan
     await ctx.storage.delete(args.fileStorageId);
@@ -332,7 +341,7 @@ export const parseVoiceToInvoice = action({
     const model = process.env.VISION_MODEL || "openai/gpt-4o";
 
     if (!apiKey) {
-      throw new Error("Kein API-Key konfiguriert. Bitte OPENROUTER_API_KEY in Convex setzen.");
+      return { error: "Kein API-Key konfiguriert. Bitte OPENROUTER_API_KEY in Convex setzen." };
     }
 
     let llmResponse: Response;
@@ -360,32 +369,32 @@ export const parseVoiceToInvoice = action({
         }),
       });
     } catch (fetchErr: any) {
-      throw new Error(`Netzwerkfehler beim Kontaktieren der KI-API: ${fetchErr.message || "unbekannt"}`);
+      return { error: `Netzwerkfehler beim Kontaktieren der KI-API: ${fetchErr.message || "unbekannt"}` };
     }
 
     if (!llmResponse.ok) {
       const errBody = await llmResponse.text().catch(() => "");
-      throw new Error(`KI-API Fehler ${llmResponse.status}: ${errBody.substring(0, 200)}`);
+      return { error: `KI-API Fehler ${llmResponse.status}: ${errBody.substring(0, 200)}` };
     }
 
     let result: any;
     try {
       result = await llmResponse.json();
-    } catch (parseErr: any) {
-      throw new Error("KI-API Antwort konnte nicht gelesen werden (ungültiges JSON).");
+    } catch {
+      return { error: "KI-API Antwort konnte nicht gelesen werden (ungültiges JSON)." };
     }
 
     const content: string = result.choices?.[0]?.message?.content || "";
     if (!content) {
-      throw new Error("KI-API hat keine Antwort geliefert.");
+      return { error: "KI-API hat keine Antwort geliefert." };
     }
 
     let extracted: any;
     try {
       const jsonText = content.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
       extracted = JSON.parse(jsonText);
-    } catch (parseErr: any) {
-      throw new Error("KI-Antwort konnte nicht als JSON geparst werden.");
+    } catch {
+      return { error: "KI-Antwort konnte nicht als JSON geparst werden." };
     }
 
     return {

@@ -115,6 +115,10 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
       if (!uploadResponse.ok) throw new Error("Upload fehlgeschlagen");
       const { storageId } = await uploadResponse.json();
       const result = await scanOutgoing({ sessionToken, fileStorageId: storageId });
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       setScanResult(result);
     } catch (err: any) {
       setError(err.message || "Fehler beim Scan");
@@ -205,6 +209,10 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
     setError("");
     try {
       const result = await parseVoice({ sessionToken, text: voiceText });
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       setScanResult(result);
     } catch (err: any) {
       setError(err.message || "Fehler bei der Textanalyse");
