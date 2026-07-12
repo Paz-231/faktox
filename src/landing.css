@@ -108,7 +108,7 @@
 /* Hero */
 .hero {
   text-align: center;
-  padding: 2rem 2rem 2rem;
+  padding: 0.5rem 2rem 1.5rem;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -1048,7 +1048,7 @@
 
 /* ── Scroll hint ──────────────────────────────────────────── */
 .scroll-hint {
-  margin-top: 3rem;
+  margin-top: 1.5rem;
   font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
