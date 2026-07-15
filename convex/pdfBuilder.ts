@@ -114,6 +114,8 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const mono = await pdf.embedFont(StandardFonts.Courier);
+  const monoBold = await pdf.embedFont(StandardFonts.CourierBold);
   const black = rgb(0, 0, 0);
   const gray = rgb(0.45, 0.45, 0.45);
 
@@ -255,13 +257,13 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
       text(page, s, cx + (cols[4].w - wdt) / 2, baseline, font, 8.9);
       cx += cols[4].w;
     }
-    // Preis — € fix links, Zahl rechtsbündig
-    text(page, "€", cx + 6, baseline, font, 8.9);
-    textRight(page, moneyNumber(item.unitPrice), cx + cols[5].w - 6, baseline, font, 8.9);
+    // Preis — € fix links, Zahl rechtsbündig in Monospace
+    text(page, "€", cx + 6, baseline, mono, 8.9);
+    textRight(page, moneyNumber(item.unitPrice), cx + cols[5].w - 6, baseline, mono, 8.9);
     cx += cols[5].w;
-    // Gesamt — € fix auf gleicher Linie wie Summen, Zahl rechtsbündig
-    text(page, "€", rightX - 20, baseline, font, 8.9);
-    textRight(page, moneyNumber(item.total), rightX - 6, baseline, font, 8.9);
+    // Gesamt — € fix auf gleicher Linie wie Summen, Zahl rechtsbündig in Monospace
+    text(page, "€", rightX - 20, baseline, mono, 8.9);
+    textRight(page, moneyNumber(item.total), rightX - 6, baseline, mono, 8.9);
 
     y -= rowH;
     page.drawLine({ start: { x: LEFT, y: y + 2 }, end: { x: rightX, y: y + 2 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
@@ -273,8 +275,8 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
   const EUR_FIXED = rightX - 20; // € auf fixer Position, bündig mit Positionstabelle
   const sumRow = (label: string, value: number, isBold = false) => {
     textRight(page, label, rightX - 130, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
-    text(page, "€", EUR_FIXED, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
-    textRight(page, moneyNumber(value), rightX - 6, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
+    text(page, "€", EUR_FIXED, y, isBold ? monoBold : mono, isBold ? 10.5 : 9.2);
+    textRight(page, moneyNumber(value), rightX - 6, y, isBold ? monoBold : mono, isBold ? 10.5 : 9.2);
     y -= 17;
   };
   // Summe der Positionen (Zwischensumme aus der Positionstabelle)
