@@ -75,6 +75,12 @@ function moneyNumber(v: number): string {
   return `${grouped},${dec}`;
 }
 
+// Monospace-Betrag: "€" + Leerzeichen + Zahl auf 10 Zeichen gepadded
+// In Courier hat jedes Zeichen dieselbe Breite → alle Ziffern stehen exakt untereinander
+function moneyMono(v: number): string {
+  return `€ ${moneyNumber(v).padStart(10, " ")}`;
+}
+
 // WinAnsi (Standard-Fonts) kann nicht alle Unicode-Zeichen —
 // unbekannte Zeichen ersetzen statt beim Encoden zu crashen.
 const WINANSI_EXTRA = new Set("\u20AC\u201E\u201C\u201D\u2018\u2019\u201A\u2013\u2014\u2026\u0160\u0161\u017D\u017E\u0152\u0153\u0178\u2020\u2021\u2030\u2039\u203A\u02DC\u02C6\u2022\u2122");
@@ -257,13 +263,11 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
       text(page, s, cx + (cols[4].w - wdt) / 2, baseline, font, 8.9);
       cx += cols[4].w;
     }
-    // Preis — € fix links, Zahl rechtsbündig in Monospace
-    text(page, "€", cx + 6, baseline, mono, 8.9);
-    textRight(page, moneyNumber(item.unitPrice), cx + cols[5].w - 6, baseline, mono, 8.9);
+    // Preis — ein String in Courier, rechtsbündig
+    textRight(page, moneyMono(item.unitPrice), cx + cols[5].w - 4, baseline, mono, 8.9);
     cx += cols[5].w;
-    // Gesamt — € fix auf gleicher Linie wie Summen, Zahl rechtsbündig in Monospace
-    text(page, "€", rightX - 20, baseline, mono, 8.9);
-    textRight(page, moneyNumber(item.total), rightX - 6, baseline, mono, 8.9);
+    // Gesamt — ein String in Courier, rechtsbündig, gleiche rechte Kante wie Summen
+    textRight(page, moneyMono(item.total), rightX - 4, baseline, mono, 8.9);
 
     y -= rowH;
     page.drawLine({ start: { x: LEFT, y: y + 2 }, end: { x: rightX, y: y + 2 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
@@ -272,11 +276,9 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
 
   // ── Summen (mit pro-Steuersatz Breakdown) ──
   ensureSpace(100);
-  const EUR_FIXED = rightX - 20; // € auf fixer Position, bündig mit Positionstabelle
   const sumRow = (label: string, value: number, isBold = false) => {
     textRight(page, label, rightX - 130, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
-    text(page, "€", EUR_FIXED, y, isBold ? monoBold : mono, isBold ? 10.5 : 9.2);
-    textRight(page, moneyNumber(value), rightX - 6, y, isBold ? monoBold : mono, isBold ? 10.5 : 9.2);
+    textRight(page, moneyMono(value), rightX - 4, y, isBold ? monoBold : mono, isBold ? 10.5 : 9.2);
     y -= 17;
   };
   // Summe der Positionen (Zwischensumme aus der Positionstabelle)
@@ -300,7 +302,7 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
     }
   }
 
-  page.drawLine({ start: { x: rightX - 200, y: y + 10 }, end: { x: rightX - 6, y: y + 10 }, thickness: 0.5, color: black });
+  page.drawLine({ start: { x: rightX - 200, y: y + 10 }, end: { x: rightX - 4, y: y + 10 }, thickness: 0.5, color: black });
   y -= 4;
   sumRow("Gesamtbetrag", doc.grossAmount, true);
   y -= 10;
