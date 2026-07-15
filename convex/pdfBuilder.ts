@@ -263,12 +263,15 @@ export async function buildDocumentPdf(doc: PdfDocument, issuer: PdfIssuer): Pro
   y -= 18;
 
   // ── Summen (mit pro-Steuersatz Breakdown) ──
-  ensureSpace(80);
+  ensureSpace(100);
   const sumRow = (label: string, value: string, isBold = false) => {
     textRight(page, label, rightX - 130, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
     textRight(page, value, rightX, y, isBold ? bold : font, isBold ? 10.5 : 9.2);
     y -= 17;
   };
+  // Summe der Positionen (Zwischensumme aus der Positionstabelle)
+  const positionSum = doc.items.reduce((sum, i) => sum + (i.total || 0), 0);
+  sumRow("Summe Positionen", money(positionSum));
   sumRow("Gesamt netto", money(doc.netAmount));
 
   // Per-rate breakdown
