@@ -290,8 +290,8 @@ export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefr
             ))}
           </div>
 
-          {/* Summary — per-rate tax breakdown, volle Breite */}
-          <div style={{ marginBottom: "1.5rem" }}>
+          {/* Summary — per-rate tax breakdown, gleiche Einrückung wie andere Boxen */}
+          <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "var(--surface-2)", border: "1px solid var(--border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0" }}>
                 <span style={{ color: "var(--fg-3)", fontSize: "0.8125rem" }}>Gesamt netto</span>
                 <span style={{ fontSize: "0.8125rem" }}>{money(auftrag.netAmount)}</span>
