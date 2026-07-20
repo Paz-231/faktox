@@ -14,7 +14,6 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-// ─── Minimal stroke icons (16px, currentColor) ──────────────
 function Icon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
     home: <path d="M2 7.5 8 2l6 5.5V14H9.5v-4h-3v4H2V7.5Z" />,
@@ -56,12 +55,10 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
     { id: "settings" as Page, icon: "gear", label: "Einstellungen" },
   ];
 
-  /* Mobile Nav State */
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="app" data-theme={theme}>
-      {/* Mobile Top Bar — visible on mobile via CSS media query */}
       <div className="mobile-top-bar">
         <button
           className="mobile-menu-btn"
@@ -91,7 +88,6 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
         </div>
       </div>
 
-      {/* Sidebar — Desktop + Mobile slide-in */}
       <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
         <div className="sidebar-logo">
           Faktox<span>.</span>
@@ -132,25 +128,29 @@ export function Dashboard({ auth, onLogout }: DashboardProps) {
         </div>
       </aside>
 
-      {/* Mobile backdrop */}
       {mobileMenuOpen && (
         <div className="sidebar-backdrop" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* Main */}
       <main className="main fade-in">
         {page === "dashboard" && (
           <DashboardPage auth={auth} onUpgrade={() => setShowUpgrade(true)} onNavigate={setPage} />
         )}
         {page === "analytics" && <AnalyticsDashboard auth={auth} onUpgrade={() => setShowUpgrade(true)} />}
-        {page === "invoices" && <InvoicesPage userId={auth.userId as any} sessionToken={auth.sessionToken} />}
+        {page === "invoices" && (
+          <InvoicesPage
+            userId={auth.userId as any}
+            sessionToken={auth.sessionToken}
+            plan={auth.plan}
+            onUpgrade={() => setShowUpgrade(true)}
+          />
+        )}
         {page === "incoming" && <IncomingPage userId={auth.userId as any} sessionToken={auth.sessionToken} />}
         {page === "customers" && <CustomersPage userId={auth.userId as any} sessionToken={auth.sessionToken} />}
         {page === "reports" && <ReportsPage userId={auth.userId as any} sessionToken={auth.sessionToken} />}
         {page === "settings" && <SettingsPage auth={auth} />}
       </main>
 
-      {/* Upgrade Modal */}
       {showUpgrade && <UpgradeModal auth={auth} onClose={() => setShowUpgrade(false)} />}
     </div>
   );
