@@ -12,7 +12,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -43,6 +43,16 @@ jobs:
           set -o pipefail
           npm test 2>&1 | tee tests.log
 
+      - name: Convex schema and function push
+        id: convex
+        continue-on-error: true
+        shell: bash
+        env:
+          CONVEX_AGENT_MODE: anonymous
+        run: |
+          set -o pipefail
+          npx convex dev --once 2>&1 | tee convex.log
+
       - name: Production build
         id: build
         continue-on-error: true
@@ -52,20 +62,22 @@ jobs:
           npm run build 2>&1 | tee build.log
 
       - name: Upload failure logs
-        if: steps.typecheck.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
+        if: steps.typecheck.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.convex.outcome == 'failure' || steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: quality-logs
           path: |
             typecheck.log
             tests.log
+            convex.log
             build.log
           retention-days: 7
 
       - name: Enforce quality gates
-        if: steps.typecheck.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
+        if: steps.typecheck.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.convex.outcome == 'failure' || steps.build.outcome == 'failure'
         run: |
           echo "Type check: ${{ steps.typecheck.outcome }}"
           echo "Unit tests: ${{ steps.tests.outcome }}"
+          echo "Convex push: ${{ steps.convex.outcome }}"
           echo "Production build: ${{ steps.build.outcome }}"
           exit 1
