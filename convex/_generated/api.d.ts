@@ -23,6 +23,7 @@ import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as pdfBuilder from "../pdfBuilder.js";
 import type * as profile from "../profile.js";
+import type * as recurringOrderAccess from "../recurringOrderAccess.js";
 import type * as recurringOrderManagement from "../recurringOrderManagement.js";
 import type * as recurringOrders from "../recurringOrders.js";
 import type * as reports from "../reports.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   pdfBuilder: typeof pdfBuilder;
   profile: typeof profile;
+  recurringOrderAccess: typeof recurringOrderAccess;
   recurringOrderManagement: typeof recurringOrderManagement;
   recurringOrders: typeof recurringOrders;
   reports: typeof reports;
