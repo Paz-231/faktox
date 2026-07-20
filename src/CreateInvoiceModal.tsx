@@ -107,7 +107,7 @@ export function CreateInvoiceModal({ userId, sessionToken, onClose, onCreated, i
   const [paymentTerms, setPaymentTerms] = useState(prefillData?.payment_terms || "Zahlbar ohne Abzug innerhalb von 7 Tagen nach Rechnungserhalt.");
   const [items, setItems] = useState<InvoiceItem[]>(
     prefillData?.items?.length
-      ? prefillData.items.map(i => ({ description: i.description, qty: i.qty, unit: i.unit, unitPrice: i.unit_price, taxRate: i.vat_rate || 0 }))
+      ? prefillData.items.map(i => ({ description: i.description, qty: i.qty, unit: i.unit, unitPrice: i.unit_price, taxRate: prefillData.vat_rate || 0 }))
       : [{ description: "", qty: 1, unit: "Stunden", unitPrice: 0, taxRate: 0 }]
   );
   const [error, setError] = useState("");

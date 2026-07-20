@@ -139,7 +139,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
         setError(result.error);
         return;
       }
-      setScanResult(result);
+      setScanResult(result as ScanResult);
     } catch (err: any) {
       setError(err.message || "Fehler beim Scan");
     } finally {
@@ -282,7 +282,7 @@ export function SmartInvoiceModal({ userId, sessionToken, onClose, onCreated, in
         setError(result.error);
         return;
       }
-      setScanResult(result);
+      setScanResult(result as ScanResult);
     } catch (err: any) {
       setError(err.message || "Fehler bei der Textanalyse");
     } finally {

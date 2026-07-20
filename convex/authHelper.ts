@@ -1,4 +1,5 @@
 import { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 // ═══════════════════════════════════════════════════════════
@@ -20,7 +21,7 @@ import { v } from "convex/values";
 export async function getAuthUserId(
   ctx: QueryCtx | MutationCtx,
   sessionToken: string
-): Promise<any> {
+): Promise<Id<"users">> {
   if (!sessionToken) {
     throw new Error("Nicht authentifiziert — kein Session-Token");
   }
