@@ -70,10 +70,12 @@ export function createRecurrenceSchedule(input: {
     startDate: input.startDate,
     timezone: input.timezone,
     endMode,
-    endDate: endMode === "on_date" ? input.endDate : undefined,
-    maxOccurrences: endMode === "after_occurrences" ? input.maxOccurrences : undefined,
+    ...(endMode === "on_date" && input.endDate ? { endDate: input.endDate } : {}),
+    ...(endMode === "after_occurrences" && input.maxOccurrences !== undefined
+      ? { maxOccurrences: input.maxOccurrences }
+      : {}),
     anchorDay: start.day,
-    anchorMonth: input.frequency === "yearly" ? start.month : undefined,
+    ...(input.frequency === "yearly" ? { anchorMonth: start.month } : {}),
     lastDayOfMonth: isLastDayOfMonth(input.startDate),
   };
 }
