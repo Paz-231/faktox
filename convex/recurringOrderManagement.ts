@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { getAuthUserId } from "./authHelper";
+import { canUseRecurringOrders, recurringPlanError } from "../shared/planAccess";
 
 const lineItemValidator = v.object({
   pos: v.number(),
@@ -42,9 +43,7 @@ export const updateTemplateContent = mutation({
     const userId = await getAuthUserId(ctx, args.sessionToken);
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("Benutzer nicht gefunden");
-    if (user.plan === "free") {
-      throw new Error("Wiederkehrende Aufträge sind im Starter- und Pro-Plan verfügbar");
-    }
+    if (!canUseRecurringOrders(user)) throw new Error(recurringPlanError(user));
 
     const template = await ctx.db.get(args.templateId);
     if (!template || template.userId !== userId) throw new Error("Serie nicht gefunden");
