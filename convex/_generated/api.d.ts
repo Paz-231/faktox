@@ -23,6 +23,7 @@ import type * as incoming from "../incoming.js";
 import type * as invoices from "../invoices.js";
 import type * as pdfBuilder from "../pdfBuilder.js";
 import type * as profile from "../profile.js";
+import type * as recurringOrders from "../recurringOrders.js";
 import type * as reports from "../reports.js";
 import type * as sessions from "../sessions.js";
 import type * as settings from "../settings.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   pdfBuilder: typeof pdfBuilder;
   profile: typeof profile;
+  recurringOrders: typeof recurringOrders;
   reports: typeof reports;
   sessions: typeof sessions;
   settings: typeof settings;
@@ -64,27 +66,11 @@ declare const fullApi: ApiFromModules<{
   waitlist: typeof waitlist;
 }>;
 
-/**
- * A utility for referencing Convex functions in your app's public API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
 
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
