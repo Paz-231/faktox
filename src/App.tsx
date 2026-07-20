@@ -111,7 +111,7 @@ function MagicLinkVerify({ token }: { token: string }) {
       (ua.includes("fban") && !ua.includes("chrome")) ||
       (ua.includes("line") && !ua.includes("chrome")) ||
       ua.includes("wv") || // Android WebView
-      (navigator.standalone === false && !ua.includes("safari") && !ua.includes("chrome") && !ua.includes("firefox") && !ua.includes("edge"));
+      ((navigator as Navigator & { standalone?: boolean }).standalone === false && !ua.includes("safari") && !ua.includes("chrome") && !ua.includes("firefox") && !ua.includes("edge"));
 
     if (isInApp) {
       setInAppBrowser(true);
