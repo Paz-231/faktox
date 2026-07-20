@@ -20,14 +20,14 @@ await replace(
 
 await replace(
   "convex/recurringOrders.ts",
-  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_created",\n      \`${args.title.trim()} — \${schedule.frequency} ab \${schedule.startDate}\`,\n    );\n    return templateId;`,
-  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_created",\n      \`${args.title.trim()} — \${schedule.frequency} ab \${schedule.startDate}\`,\n    );\n    if (schedule.startDate === today) {\n      await ctx.scheduler.runAfter(0, internal.recurringOrders.generateOccurrenceJob, {\n        templateId,\n        expectedDate: schedule.startDate,\n      });\n    }\n    return templateId;`,
+  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_created",\n      \`\${args.title.trim()} — \${schedule.frequency} ab \${schedule.startDate}\`,\n    );\n    return templateId;`,
+  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_created",\n      \`\${args.title.trim()} — \${schedule.frequency} ab \${schedule.startDate}\`,\n    );\n    if (schedule.startDate === today) {\n      await ctx.scheduler.runAfter(0, internal.recurringOrders.generateOccurrenceJob, {\n        templateId,\n        expectedDate: schedule.startDate,\n      });\n    }\n    return templateId;`,
 );
 
 await replace(
   "convex/recurringOrders.ts",
-  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_resumed",\n      \`${template.title} — nächster Termin \${next.date}\`,\n    );\n    return null;`,
-  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_resumed",\n      \`${template.title} — nächster Termin \${next.date}\`,\n    );\n    if (next.date <= today) {\n      await ctx.scheduler.runAfter(0, internal.recurringOrders.generateOccurrenceJob, {\n        templateId: template._id,\n        expectedDate: next.date,\n      });\n    }\n    return null;`,
+  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_resumed",\n      \`\${template.title} — nächster Termin \${next.date}\`,\n    );\n    return null;`,
+  `    await insertAudit(\n      ctx,\n      userId,\n      "recurring_order_resumed",\n      \`\${template.title} — nächster Termin \${next.date}\`,\n    );\n    if (next.date <= today) {\n      await ctx.scheduler.runAfter(0, internal.recurringOrders.generateOccurrenceJob, {\n        templateId: template._id,\n        expectedDate: next.date,\n      });\n    }\n    return null;`,
 );
 
 await replace(
