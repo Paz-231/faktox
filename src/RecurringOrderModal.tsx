@@ -85,7 +85,7 @@ export function RecurringOrderModal({
 
   const effectiveItems = items.map((item) => ({
     ...item,
-    taxRate: item.taxRate ?? profileTaxRate,
+    taxRate: profileTaxRate,
   }));
 
   const netAmount = effectiveItems.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
@@ -162,6 +162,10 @@ export function RecurringOrderModal({
     setError("");
     if (plan === "free") {
       setError("Wiederkehrende Aufträge sind im Starter- und Pro-Plan verfügbar.");
+      return;
+    }
+    if (!profile) {
+      setError("Das Unternehmensprofil wird noch geladen. Bitte versuche es gleich erneut.");
       return;
     }
     if (!title.trim()) {
@@ -423,7 +427,7 @@ export function RecurringOrderModal({
 
         <div className="modal-footer" style={{ flexShrink: 0 }}>
           <button className="btn" onClick={onClose}>Abbrechen</button>
-          <button className="btn btn-primary" onClick={handleCreate} disabled={creating || plan === "free"}>
+          <button className="btn btn-primary" onClick={handleCreate} disabled={creating || plan === "free" || !profile}>
             {creating ? "Serie wird angelegt..." : "Wiederkehrenden Auftrag anlegen"}
           </button>
         </div>

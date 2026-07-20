@@ -45,7 +45,8 @@ export function RecurringOrdersList({
   onCreate,
   onUpgrade,
 }: RecurringOrdersListProps) {
-  const templates = useQuery(api.recurringOrders.listTemplates, { sessionToken }) ?? [];
+  const templatesQuery = useQuery(api.recurringOrders.listTemplates, { sessionToken });
+  const templates = templatesQuery ?? [];
   const pauseTemplate = useMutation(api.recurringOrders.pauseTemplate);
   const resumeTemplate = useMutation(api.recurringOrders.resumeTemplate);
   const endTemplate = useMutation(api.recurringOrders.endTemplate);
@@ -55,6 +56,15 @@ export function RecurringOrdersList({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  if (templatesQuery === undefined) {
+    return (
+      <div className="empty-state" style={{ padding: "3rem 1.25rem", textAlign: "center" }} aria-live="polite">
+        <h3>Wiederkehrende Aufträge werden geladen</h3>
+        <p style={{ marginTop: "0.5rem" }}>Serien und nächste Termine werden abgerufen.</p>
+      </div>
+    );
+  }
 
   const visibleTemplates = filter === "all"
     ? templates
