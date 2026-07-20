@@ -9,6 +9,7 @@ interface AuftragDetailProps {
   sessionToken: string;
   onClose: () => void;
   onRefresh: () => void;
+  onOpenRecurring?: (templateId: string) => void;
 }
 
 type DocKind = "rechnung" | "angebot" | "auftrag";
@@ -28,7 +29,7 @@ const TAX_LABELS: Record<string, string> = {
   befreit: "Befreit (0%)",
 };
 
-export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefresh }: AuftragDetailProps) {
+export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefresh, onOpenRecurring }: AuftragDetailProps) {
   const detail = useQuery(api.auftrags.getDetail, { auftragId: auftragId as any, sessionToken });
   const settings = useQuery(api.settings.get, { userId: userId as any, sessionToken });
   const profile = useQuery(api.profile.get, { userId: userId as any, sessionToken });
@@ -221,6 +222,24 @@ export function AuftragDetail({ auftragId, userId, sessionToken, onClose, onRefr
             <div style={{ fontSize: "0.75rem", color: "var(--fg-3)", marginTop: "0.25rem" }}>
               Auftrag · {auftrag.date} · {statusBadge(auftrag.status)}
             </div>
+            {auftrag.createdAutomatically && (
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                <span className="badge badge-accent">Automatisch aus Serie</span>
+                {auftrag.scheduledFor && (
+                  <span style={{ fontSize: "0.6875rem", color: "var(--fg-3)" }}>Termin {auftrag.scheduledFor.split("-").reverse().join(".")}</span>
+                )}
+                {auftrag.recurringTemplateId && onOpenRecurring && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => onOpenRecurring(String(auftrag.recurringTemplateId))}
+                    style={{ padding: "0.25rem 0.5rem" }}
+                  >
+                    Zur Serie
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>×</button>
         </div>

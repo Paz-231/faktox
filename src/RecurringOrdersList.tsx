@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { EditRecurringOrderModal } from "./EditRecurringOrderModal";
@@ -244,7 +244,7 @@ export function RecurringOrdersList({
               </thead>
               <tbody>
                 {visibleTemplates.map((template: any) => (
-                  <>
+                  <Fragment key={template._id}>
                     <tr key={template._id}>
                       <td>
                         <button
@@ -272,7 +272,7 @@ export function RecurringOrdersList({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
